@@ -1,5 +1,5 @@
-import React, { useEffect, useMemo, useState } from 'react';
-import { Pressable, ScrollView, StyleSheet, View } from 'react-native';
+import React, { useCallback, useEffect, useMemo, useState } from 'react';
+import { LayoutChangeEvent, Pressable, ScrollView, StyleSheet, View } from 'react-native';
 
 import { ThemedText } from '@/components/themed-text';
 import { ThemedView } from '@/components/themed-view';
@@ -16,6 +16,7 @@ import {
   buildBlockedEdges,
   canPlaceWall,
   computeAvailableWalls,
+  describeWallPlacement,
   getOpponent,
   getValidPawnMoves,
   isWinningPosition,
@@ -58,6 +59,7 @@ export function QuoridorGame() {
   const [wallOrientation, setWallOrientation] = useState<Orientation>('horizontal');
   const [winner, setWinner] = useState<PlayerId | null>(null);
   const [statusMessage, setStatusMessage] = useState<string | null>(null);
+  const [boardContainerWidth, setBoardContainerWidth] = useState<number | null>(null);
 
   const opponent = getOpponent(currentPlayer);
 
@@ -111,6 +113,19 @@ export function QuoridorGame() {
     }
     return computeAvailableWalls(wallOrientation, walls, positions);
   }, [currentPlayer, mode, positions, wallOrientation, walls, wallsRemaining, winner]);
+
+  const handleBoardLayout = useCallback(
+    ({ nativeEvent }: LayoutChangeEvent) => {
+      const { width: layoutWidth } = nativeEvent.layout;
+      setBoardContainerWidth((previous) => {
+        if (previous !== null && Math.abs(previous - layoutWidth) < 0.5) {
+          return previous;
+        }
+        return layoutWidth;
+      });
+    },
+    [],
+  );
 
   useEffect(() => {
     if (mode !== 'wall' || winner || wallsRemaining[currentPlayer] <= 0) {
@@ -169,11 +184,11 @@ export function QuoridorGame() {
   const helperMessage = winner
     ? 'Tap “Start a new game” to reset the board and challenge a friend again.'
     : statusMessage ??
-      (mode === 'wall'
-        ? availableWalls.length > 0
-          ? `Tap a highlighted groove to place a ${wallOrientation} wall.`
-          : 'No legal placements for this orientation. Try switching orientation or move your pawn.'
-        : 'Tap a highlighted square to move your pawn.');
+    (mode === 'wall'
+      ? availableWalls.length > 0
+        ? `Tap a highlighted groove to place a ${wallOrientation} wall.`
+        : 'No legal placements for this orientation. Try switching orientation or move your pawn.'
+      : 'Tap a highlighted square to move your pawn.');
 
   const canCurrentPlayerPlaceWall = wallsRemaining[currentPlayer] > 0;
 
@@ -249,7 +264,9 @@ export function QuoridorGame() {
     }
 
     if (!canPlaceWall(wall, walls, positions)) {
-      setStatusMessage('That wall cannot be placed because it would block all paths.');
+      setStatusMessage(
+        'That wall cannot be placed there because it conflicts with another wall or would block all paths.',
+      );
       return;
     }
 
@@ -258,7 +275,9 @@ export function QuoridorGame() {
       ...remaining,
       [currentPlayer]: remaining[currentPlayer] - 1,
     }));
-    setStatusMessage(null);
+    setStatusMessage(
+      `${PLAYER_LABELS[currentPlayer]} placed ${describeWallPlacement(wall)}. ${PLAYER_LABELS[opponent]} to play.`,
+    );
     setCurrentPlayer(opponent);
     setMode('move');
   };
@@ -338,16 +357,19 @@ export function QuoridorGame() {
           ) : null}
         </View>
 
-        <QuoridorBoard
-          currentPlayer={currentPlayer}
-          positions={positions}
-          walls={walls}
-          validMoves={validMoves}
-          mode={mode}
-          availableWalls={availableWalls}
-          onCellPress={handleCellPress}
-          onWallPress={handleWallPlacement}
-        />
+        <View style={styles.boardWrapper} onLayout={handleBoardLayout}>
+          <QuoridorBoard
+            currentPlayer={currentPlayer}
+            positions={positions}
+            walls={walls}
+            validMoves={validMoves}
+            mode={mode}
+            availableWalls={availableWalls}
+            onCellPress={handleCellPress}
+            onWallPress={handleWallPlacement}
+            maxBoardSize={boardContainerWidth ?? undefined}
+          />
+        </View>
 
         <Pressable
           style={[styles.resetButton, { backgroundColor: Colors[colorScheme].tint }]}
@@ -450,6 +472,10 @@ const styles = StyleSheet.create({
   },
   controlsSection: {
     gap: 12,
+  },
+  boardWrapper: {
+    width: '100%',
+    alignItems: 'center',
   },
   modeRow: {
     flexDirection: 'row',

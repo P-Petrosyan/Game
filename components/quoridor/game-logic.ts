@@ -83,17 +83,8 @@ export function buildBlockedEdges(walls: Wall[]): Set<string> {
   const blocked = new Set<string>();
 
   for (const wall of walls) {
-    const topLeft = { row: wall.row, col: wall.col };
-    const topRight = { row: wall.row, col: wall.col + 1 };
-    const bottomLeft = { row: wall.row + 1, col: wall.col };
-    const bottomRight = { row: wall.row + 1, col: wall.col + 1 };
-
-    if (wall.orientation === 'horizontal') {
-      blocked.add(edgeKey(topLeft, bottomLeft));
-      blocked.add(edgeKey(topRight, bottomRight));
-    } else {
-      blocked.add(edgeKey(topLeft, topRight));
-      blocked.add(edgeKey(bottomLeft, bottomRight));
+    for (const edge of getWallEdgeKeys(wall)) {
+      blocked.add(edge);
     }
   }
 
@@ -102,6 +93,19 @@ export function buildBlockedEdges(walls: Wall[]): Set<string> {
 
 function isEdgeBlocked(a: Position, b: Position, blockedEdges: Set<string>): boolean {
   return blockedEdges.has(edgeKey(a, b));
+}
+
+function getWallEdgeKeys(wall: Wall): string[] {
+  const topLeft = { row: wall.row, col: wall.col };
+  const topRight = { row: wall.row, col: wall.col + 1 };
+  const bottomLeft = { row: wall.row + 1, col: wall.col };
+  const bottomRight = { row: wall.row + 1, col: wall.col + 1 };
+
+  if (wall.orientation === 'horizontal') {
+    return [edgeKey(topLeft, bottomLeft), edgeKey(topRight, bottomRight)];
+  }
+
+  return [edgeKey(topLeft, topRight), edgeKey(bottomLeft, bottomRight)];
 }
 
 function getAdjacentPositions({ row, col }: Position): Position[] {
@@ -196,15 +200,6 @@ function crossesExistingWall(candidate: Wall, walls: Wall[]): boolean {
   );
 }
 
-function overlapsExistingWall(candidate: Wall, walls: Wall[]): boolean {
-  return walls.some(
-    (wall) =>
-      wall.orientation === candidate.orientation &&
-      wall.row === candidate.row &&
-      wall.col === candidate.col,
-  );
-}
-
 export function canPlaceWall(
   candidate: Wall,
   walls: Wall[],
@@ -214,16 +209,25 @@ export function canPlaceWall(
     return false;
   }
 
-  if (overlapsExistingWall(candidate, walls) || crossesExistingWall(candidate, walls)) {
+  if (crossesExistingWall(candidate, walls)) {
     return false;
   }
 
-  const updatedWalls = [...walls, candidate];
-  const blockedEdges = buildBlockedEdges(updatedWalls);
+  const blockedEdges = buildBlockedEdges(walls);
+  const candidateEdges = getWallEdgeKeys(candidate);
+
+  if (candidateEdges.some((edge) => blockedEdges.has(edge))) {
+    return false;
+  }
+
+  const updatedBlockedEdges = new Set(blockedEdges);
+  for (const edge of candidateEdges) {
+    updatedBlockedEdges.add(edge);
+  }
 
   return (
-    bfsHasPath(positions.north, GOAL_ROW.north, blockedEdges) &&
-    bfsHasPath(positions.south, GOAL_ROW.south, blockedEdges)
+    bfsHasPath(positions.north, GOAL_ROW.north, updatedBlockedEdges) &&
+    bfsHasPath(positions.south, GOAL_ROW.south, updatedBlockedEdges)
   );
 }
 
@@ -248,4 +252,10 @@ export function computeAvailableWalls(
 
 export function isWinningPosition(player: PlayerId, position: Position): boolean {
   return position.row === GOAL_ROW[player];
+}
+
+export function describeWallPlacement(wall: Wall): string {
+  const direction = wall.orientation === 'horizontal' ? 'east-west' : 'north-south';
+  const article = wall.orientation === 'horizontal' ? 'an' : 'a';
+  return `${article} ${direction} wall at row ${wall.row + 1}, column ${wall.col + 1}`;
 }
