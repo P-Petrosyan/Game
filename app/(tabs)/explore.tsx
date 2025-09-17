@@ -1,112 +1,94 @@
-import { Image } from 'expo-image';
-import { Platform, StyleSheet } from 'react-native';
+import { StyleSheet } from 'react-native';
 
-import { Collapsible } from '@/components/ui/collapsible';
-import { ExternalLink } from '@/components/external-link';
 import ParallaxScrollView from '@/components/parallax-scroll-view';
 import { ThemedText } from '@/components/themed-text';
 import { ThemedView } from '@/components/themed-view';
+import { Collapsible } from '@/components/ui/collapsible';
 import { IconSymbol } from '@/components/ui/icon-symbol';
-import { Fonts } from '@/constants/theme';
 
-export default function TabTwoScreen() {
+export default function RulesScreen() {
   return (
     <ParallaxScrollView
-      headerBackgroundColor={{ light: '#D0D0D0', dark: '#353636' }}
-      headerImage={
-        <IconSymbol
-          size={310}
-          color="#808080"
-          name="chevron.left.forwardslash.chevron.right"
-          style={styles.headerImage}
-        />
-      }>
-      <ThemedView style={styles.titleContainer}>
-        <ThemedText
-          type="title"
-          style={{
-            fontFamily: Fonts.rounded,
-          }}>
-          Explore
-        </ThemedText>
+      headerBackgroundColor={{ light: '#f9e8cc', dark: '#2b1b0f' }}
+      headerImage={<IconSymbol size={280} name="gamecontroller.fill" color="#f2a65a" style={styles.headerIcon} />}>
+      <ThemedView style={styles.titleRow}>
+        <ThemedText type="title">How to play Quoridor</ThemedText>
       </ThemedView>
-      <ThemedText>This app includes example code to help you get started.</ThemedText>
-      <Collapsible title="File-based routing">
-        <ThemedText>
-          This app has two screens:{' '}
-          <ThemedText type="defaultSemiBold">app/(tabs)/index.tsx</ThemedText> and{' '}
-          <ThemedText type="defaultSemiBold">app/(tabs)/explore.tsx</ThemedText>
-        </ThemedText>
-        <ThemedText>
-          The layout file in <ThemedText type="defaultSemiBold">app/(tabs)/_layout.tsx</ThemedText>{' '}
-          sets up the tab navigator.
-        </ThemedText>
-        <ExternalLink href="https://docs.expo.dev/router/introduction">
-          <ThemedText type="link">Learn more</ThemedText>
-        </ExternalLink>
-      </Collapsible>
-      <Collapsible title="Android, iOS, and web support">
-        <ThemedText>
-          You can open this project on Android, iOS, and the web. To open the web version, press{' '}
-          <ThemedText type="defaultSemiBold">w</ThemedText> in the terminal running this project.
+      <ThemedText style={styles.intro}>
+        Two players race across a 9×9 grid while dropping fences to redirect their rival. The tabs below recap the official
+        rules and share tips for planning your turns on mobile.
+      </ThemedText>
+
+      <Collapsible title="Objective">
+        <ThemedText style={styles.paragraph}>
+          Your pawn begins on the row closest to you. Reach the opposite edge of the board before your opponent does. Pawns can
+          never be removed from the board, so the finish line is always reachable.
         </ThemedText>
       </Collapsible>
-      <Collapsible title="Images">
-        <ThemedText>
-          For static images, you can use the <ThemedText type="defaultSemiBold">@2x</ThemedText> and{' '}
-          <ThemedText type="defaultSemiBold">@3x</ThemedText> suffixes to provide files for
-          different screen densities
-        </ThemedText>
-        <Image
-          source={require('@/assets/images/react-logo.png')}
-          style={{ width: 100, height: 100, alignSelf: 'center' }}
-        />
-        <ExternalLink href="https://reactnative.dev/docs/images">
-          <ThemedText type="link">Learn more</ThemedText>
-        </ExternalLink>
+
+      <Collapsible title="Moving your pawn">
+        <ThemedView style={styles.list}>
+          <ThemedText style={styles.paragraph}>• Move one space north, south, east or west if no wall blocks the path.</ThemedText>
+          <ThemedText style={styles.paragraph}>
+            • When standing next to the opponent you may jump straight over them if the square behind them is free of walls.
+          </ThemedText>
+          <ThemedText style={styles.paragraph}>
+            • If the jump is blocked, sidestep diagonally to either open square beside the opposing pawn instead.
+          </ThemedText>
+        </ThemedView>
       </Collapsible>
-      <Collapsible title="Light and dark mode components">
-        <ThemedText>
-          This template has light and dark mode support. The{' '}
-          <ThemedText type="defaultSemiBold">useColorScheme()</ThemedText> hook lets you inspect
-          what the user&apos;s current color scheme is, and so you can adjust UI colors accordingly.
-        </ThemedText>
-        <ExternalLink href="https://docs.expo.dev/develop/user-interface/color-themes/">
-          <ThemedText type="link">Learn more</ThemedText>
-        </ExternalLink>
+
+      <Collapsible title="Placing walls">
+        <ThemedView style={styles.list}>
+          <ThemedText style={styles.paragraph}>• Each player starts with ten walls. Dropping a wall counts as your entire turn.</ThemedText>
+          <ThemedText style={styles.paragraph}>• Walls span two spaces and must sit in an empty groove between four squares.</ThemedText>
+          <ThemedText style={styles.paragraph}>
+            • You cannot overlap an existing wall, cross through the middle of one, or seal off the final path to any goal row.
+          </ThemedText>
+        </ThemedView>
       </Collapsible>
-      <Collapsible title="Animations">
-        <ThemedText>
-          This template includes an example of an animated component. The{' '}
-          <ThemedText type="defaultSemiBold">components/HelloWave.tsx</ThemedText> component uses
-          the powerful{' '}
-          <ThemedText type="defaultSemiBold" style={{ fontFamily: Fonts.mono }}>
-            react-native-reanimated
-          </ThemedText>{' '}
-          library to create a waving hand animation.
+
+      <Collapsible title="Strategy warm‑ups">
+        <ThemedView style={styles.list}>
+          <ThemedText style={styles.paragraph}>• Advance quickly through the centre to keep your options open.</ThemedText>
+          <ThemedText style={styles.paragraph}>
+            • When you place a wall, leave yourself at least two routes so you can pivot if your opponent blocks one.
+          </ThemedText>
+          <ThemedText style={styles.paragraph}>
+            • Counting the number of steps to each goal row helps you decide when a wall buys more tempo than a pawn move.
+          </ThemedText>
+        </ThemedView>
+      </Collapsible>
+
+      <Collapsible title="Play on this screen">
+        <ThemedText style={styles.paragraph}>
+          The Home tab hosts an interactive board. Switch between “Move pawn” and “Place wall” to highlight legal actions, tap a
+          target, and the app will track turns, remaining fences, and victory automatically.
         </ThemedText>
-        {Platform.select({
-          ios: (
-            <ThemedText>
-              The <ThemedText type="defaultSemiBold">components/ParallaxScrollView.tsx</ThemedText>{' '}
-              component provides a parallax effect for the header image.
-            </ThemedText>
-          ),
-        })}
       </Collapsible>
     </ParallaxScrollView>
   );
 }
 
 const styles = StyleSheet.create({
-  headerImage: {
-    color: '#808080',
-    bottom: -90,
-    left: -35,
+  headerIcon: {
     position: 'absolute',
+    bottom: -40,
+    right: 24,
   },
-  titleContainer: {
+  titleRow: {
     flexDirection: 'row',
+    alignItems: 'center',
     gap: 8,
+  },
+  intro: {
+    marginBottom: 12,
+    lineHeight: 22,
+  },
+  list: {
+    gap: 8,
+  },
+  paragraph: {
+    lineHeight: 22,
   },
 });
