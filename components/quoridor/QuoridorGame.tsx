@@ -367,7 +367,6 @@ export function QuoridorGame() {
             availableWalls={availableWalls}
             onCellPress={handleCellPress}
             onWallPress={handleWallPlacement}
-            maxBoardSize={boardContainerWidth ?? undefined}
           />
         </View>
 

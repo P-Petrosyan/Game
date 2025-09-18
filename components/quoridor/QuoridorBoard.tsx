@@ -1,5 +1,5 @@
 import React, { useMemo } from 'react';
-import { Pressable, StyleSheet, Text, View, useWindowDimensions } from 'react-native';
+import { Pressable, StyleSheet, View, useWindowDimensions } from 'react-native';
 
 import { ThemedText } from '@/components/themed-text';
 import { useColorScheme } from '@/hooks/use-color-scheme';
@@ -15,7 +15,6 @@ export type QuoridorBoardProps = {
   availableWalls: Wall[];
   onCellPress: (position: Position) => void;
   onWallPress: (wall: Wall) => void;
-  maxBoardSize?: number;
 };
 
 const PAWN_LABEL: Record<PlayerId, string> = {
@@ -32,13 +31,10 @@ export function QuoridorBoard({
                                 availableWalls,
                                 onCellPress,
                                 onWallPress,
-                                maxBoardSize,
                               }: QuoridorBoardProps) {
   const colorScheme = useColorScheme() ?? 'light';
   const { width } = useWindowDimensions();
-  const fallbackSize = Math.max(0, Math.min(width - 64, 420));
-  const targetSize = maxBoardSize !== undefined ? Math.min(maxBoardSize, 420) : fallbackSize;
-  const boardSize = Math.max(targetSize, 33);
+  const boardSize = Math.min(width - 32, 420);
   const wallThickness = Math.max(4, boardSize * 0.035);
   const cellSize = (boardSize - wallThickness * (BOARD_SIZE - 1)) / BOARD_SIZE;
   const wallIndicatorSize = Math.max(10, wallThickness * 0.75);
@@ -58,7 +54,6 @@ export function QuoridorBoard({
         currentOutline: '#f1c40f',
         move: 'rgba(46, 204, 113, 0.75)',
         wallHint: 'rgba(241, 196, 15, 0.35)',
-        wallDirection: '#3a3128',
       } as const;
     }
 
@@ -75,7 +70,6 @@ export function QuoridorBoard({
       currentOutline: '#f39c12',
       move: 'rgba(26, 188, 156, 0.75)',
       wallHint: 'rgba(243, 156, 18, 0.3)',
-      wallDirection: '#fdf6e3',
     } as const;
   }, [colorScheme]);
 
@@ -189,18 +183,8 @@ export function QuoridorBoard({
                 height: wallThickness,
                 backgroundColor: palette.wall,
                 borderRadius: wallThickness / 2,
-              }}>
-              <View pointerEvents="none" style={styles.wallDirectionOverlay}>
-                <Text
-                  style={{
-                    color: palette.wallDirection,
-                    fontSize: wallIndicatorSize,
-                    fontWeight: '700',
-                  }}>
-                  ⇄
-                </Text>
-              </View>
-            </View>
+              }}
+            />
           );
         }
 
@@ -216,18 +200,8 @@ export function QuoridorBoard({
               height: cellSize * 2 + wallThickness,
               backgroundColor: palette.wall,
               borderRadius: wallThickness / 2,
-            }}>
-            <View pointerEvents="none" style={styles.wallDirectionOverlay}>
-              <Text
-                style={{
-                  color: palette.wallDirection,
-                  fontSize: wallIndicatorSize,
-                  fontWeight: '700',
-                }}>
-                ⇅
-              </Text>
-            </View>
-          </View>
+            }}
+          />
         );
       })}
 
@@ -292,15 +266,6 @@ const styles = StyleSheet.create({
   },
   cell: {
     position: 'absolute',
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  wallDirectionOverlay: {
-    position: 'absolute',
-    left: 0,
-    right: 0,
-    top: 0,
-    bottom: 0,
     alignItems: 'center',
     justifyContent: 'center',
   },
