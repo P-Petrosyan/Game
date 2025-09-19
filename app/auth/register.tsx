@@ -1,4 +1,4 @@
-import { useRouter } from 'expo-router';
+import { Link, useRouter } from 'expo-router';
 import { useState } from 'react';
 import {
   Alert,
@@ -13,46 +13,37 @@ import {
 import { ThemedText } from '@/components/themed-text';
 import { ThemedView } from '@/components/themed-view';
 import { Colors } from '@/constants/theme';
-import { useGameLobby } from '@/context/GameLobbyContext';
+import { useAuth } from '@/context/AuthContext';
 import { useColorScheme } from '@/hooks/use-color-scheme';
 
-export default function CreateGameScreen() {
-  const [gameName, setGameName] = useState('');
+export default function RegisterScreen() {
+  const [displayName, setDisplayName] = useState('');
+  const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
   const [submitting, setSubmitting] = useState(false);
   const router = useRouter();
-  const { createGame } = useGameLobby();
+  const { register } = useAuth();
   const colorScheme = useColorScheme() ?? 'light';
   const accentColor = Colors[colorScheme].tint;
   const textColor = Colors[colorScheme].text;
   const buttonTextColor = colorScheme === 'dark' ? Colors.dark.background : '#fff';
   const placeholderColor = colorScheme === 'dark' ? '#9BA1A6' : '#6B7280';
 
-  const isDisabled = gameName.trim().length === 0;
+  const isDisabled = email.trim().length === 0 || password.trim().length === 0;
 
-  const handleCreate = async () => {
-    if (submitting) {
+  const handleRegister = async () => {
+    if (submitting || isDisabled) {
       return;
     }
 
     setSubmitting(true);
 
     try {
-      const newGame = await createGame(gameName);
-      setGameName('');
-      Alert.alert('Game created', `"${newGame.name}" is now visible in the online lobby.`, [
-        {
-          text: 'View game',
-          onPress: () =>
-            router.replace({ pathname: '/online/game/[id]', params: { id: newGame.id } }),
-        },
-        {
-          text: 'Back to lobby',
-          onPress: () => router.replace('/online'),
-        },
-      ]);
-    } catch (error) {
-      const message = error instanceof Error ? error.message : 'Please enter a valid name.';
-      Alert.alert('Cannot create game', message);
+      await register({ email: email.trim(), password, displayName: displayName.trim() || undefined });
+      router.replace('/');
+    } catch (authError) {
+      const message = authError instanceof Error ? authError.message : 'Unable to create the account right now.';
+      Alert.alert('Registration failed', message);
     } finally {
       setSubmitting(false);
     }
@@ -66,25 +57,49 @@ export default function CreateGameScreen() {
         style={styles.container}>
         <View style={styles.header}>
           <ThemedText type="title" style={styles.title}>
-            Create a game
+            Create an account
           </ThemedText>
           <ThemedText style={styles.subtitle}>
-            Choose a name so other players can recognize your room in the lobby.
+            Store your progress online and manage multiplayer games from any device.
           </ThemedText>
         </View>
         <View style={styles.form}>
-          <ThemedText type="defaultSemiBold">Game name</ThemedText>
+          <ThemedText type="defaultSemiBold">Display name</ThemedText>
           <TextInput
-            value={gameName}
-            onChangeText={setGameName}
-            placeholder="e.g. Saturday Showdown"
+            value={displayName}
+            onChangeText={setDisplayName}
+            placeholder="Arcade Champion"
+            placeholderTextColor={placeholderColor}
+            style={[styles.input, { borderColor: accentColor, color: textColor }]}
+            returnKeyType="next"
+            textContentType="name"
+          />
+          <ThemedText type="defaultSemiBold">Email address</ThemedText>
+          <TextInput
+            value={email}
+            onChangeText={setEmail}
+            autoCapitalize="none"
+            keyboardType="email-address"
+            placeholder="you@example.com"
+            placeholderTextColor={placeholderColor}
+            style={[styles.input, { borderColor: accentColor, color: textColor }]}
+            returnKeyType="next"
+            textContentType="emailAddress"
+          />
+          <ThemedText type="defaultSemiBold">Password</ThemedText>
+          <TextInput
+            value={password}
+            onChangeText={setPassword}
+            secureTextEntry
+            placeholder="Choose a strong password"
             placeholderTextColor={placeholderColor}
             style={[styles.input, { borderColor: accentColor, color: textColor }]}
             returnKeyType="done"
-            onSubmitEditing={handleCreate}
+            textContentType="newPassword"
+            onSubmitEditing={handleRegister}
           />
           <Pressable
-            onPress={handleCreate}
+            onPress={handleRegister}
             disabled={isDisabled || submitting}
             style={({ pressed }) => [
               styles.submitButton,
@@ -94,9 +109,15 @@ export default function CreateGameScreen() {
               },
             ]}>
             <ThemedText type="defaultSemiBold" style={[styles.submitButtonText, { color: buttonTextColor }]}>
-              {submitting ? 'Creating…' : 'Create game'}
+              {submitting ? 'Creating account…' : 'Create account'}
             </ThemedText>
           </Pressable>
+        </View>
+        <View style={styles.footer}>
+          <ThemedText>Already have an account? </ThemedText>
+          <Link href="/auth/login" style={styles.link}>
+            Sign in instead
+          </Link>
         </View>
       </KeyboardAvoidingView>
     </ThemedView>
@@ -140,5 +161,14 @@ const styles = StyleSheet.create({
   },
   submitButtonText: {
     textAlign: 'center',
+  },
+  footer: {
+    flexDirection: 'row',
+    justifyContent: 'center',
+    gap: 6,
+  },
+  link: {
+    fontWeight: '600',
+    textDecorationLine: 'underline',
   },
 });

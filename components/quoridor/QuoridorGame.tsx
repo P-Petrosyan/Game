@@ -1,5 +1,5 @@
-import React, { useCallback, useEffect, useMemo, useState } from 'react';
-import { LayoutChangeEvent, Pressable, ScrollView, StyleSheet, View } from 'react-native';
+import React, { useEffect, useMemo, useState } from 'react';
+import { Pressable, ScrollView, StyleSheet, View } from 'react-native';
 
 import { ThemedText } from '@/components/themed-text';
 import { ThemedView } from '@/components/themed-view';
@@ -59,7 +59,6 @@ export function QuoridorGame() {
   const [wallOrientation, setWallOrientation] = useState<Orientation>('horizontal');
   const [winner, setWinner] = useState<PlayerId | null>(null);
   const [statusMessage, setStatusMessage] = useState<string | null>(null);
-  const [boardContainerWidth, setBoardContainerWidth] = useState<number | null>(null);
 
   const opponent = getOpponent(currentPlayer);
 
@@ -113,19 +112,6 @@ export function QuoridorGame() {
     }
     return computeAvailableWalls(wallOrientation, walls, positions);
   }, [currentPlayer, mode, positions, wallOrientation, walls, wallsRemaining, winner]);
-
-  const handleBoardLayout = useCallback(
-    ({ nativeEvent }: LayoutChangeEvent) => {
-      const { width: layoutWidth } = nativeEvent.layout;
-      setBoardContainerWidth((previous) => {
-        if (previous !== null && Math.abs(previous - layoutWidth) < 0.5) {
-          return previous;
-        }
-        return layoutWidth;
-      });
-    },
-    [],
-  );
 
   useEffect(() => {
     if (mode !== 'wall' || winner || wallsRemaining[currentPlayer] <= 0) {
@@ -357,7 +343,7 @@ export function QuoridorGame() {
           ) : null}
         </View>
 
-        <View style={styles.boardWrapper} onLayout={handleBoardLayout}>
+        <View style={styles.boardWrapper}>
           <QuoridorBoard
             currentPlayer={currentPlayer}
             positions={positions}
