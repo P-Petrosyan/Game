@@ -16,6 +16,29 @@ This is an [Expo](https://expo.dev) project created with [`create-expo-app`](htt
    npx expo start
    ```
 
+### Connect Firebase services
+
+This project uses [Firebase Authentication](https://firebase.google.com/docs/auth) and [Cloud Firestore](https://firebase.google.com/docs/firestore) for multiplayer features. Create a Firebase project and add a web app, then provide the configuration values via environment variables (Expo automatically exposes variables prefixed with `EXPO_PUBLIC_`).
+
+Create a `.env` file in the project root that includes:
+
+```bash
+EXPO_PUBLIC_FIREBASE_API_KEY=your-api-key
+EXPO_PUBLIC_FIREBASE_AUTH_DOMAIN=your-app.firebaseapp.com
+EXPO_PUBLIC_FIREBASE_PROJECT_ID=your-project-id
+EXPO_PUBLIC_FIREBASE_STORAGE_BUCKET=your-app.appspot.com
+EXPO_PUBLIC_FIREBASE_MESSAGING_SENDER_ID=sender-id
+EXPO_PUBLIC_FIREBASE_APP_ID=app-id
+```
+
+Enable Email/Password authentication in the Firebase console and create the following Firestore collections:
+
+- `users` – profile documents created automatically when players register or sign in.
+- `games` – lobby/game session metadata. Documents are created when a host sets up a room.
+- `items` – optional collection used for the featured item list on the home screen.
+
+Firestore documents are updated through the app, so no additional security rules are required for basic local development. Remember to tighten the rules before deploying to production.
+
 In the output, you'll find options to open the app in a
 
 - [development build](https://docs.expo.dev/develop/development-builds/introduction/)

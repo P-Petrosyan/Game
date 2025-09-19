@@ -37,7 +37,6 @@ export function QuoridorBoard({
   const boardSize = Math.min(width - 32, 420);
   const wallThickness = Math.max(4, boardSize * 0.035);
   const cellSize = (boardSize - wallThickness * (BOARD_SIZE - 1)) / BOARD_SIZE;
-  const wallIndicatorSize = Math.max(10, wallThickness * 0.75);
 
   const palette = useMemo(() => {
     if (colorScheme === 'dark') {
