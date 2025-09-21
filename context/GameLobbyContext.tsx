@@ -1,50 +1,259 @@
-import React, { createContext, useContext, useMemo, useState, type ReactNode } from 'react';
+import React, {
+  createContext,
+  useCallback,
+  useContext,
+  useEffect,
+  useMemo,
+  useState,
+  type ReactNode,
+} from 'react';
+import {
+  addDoc,
+  collection,
+  type CollectionReference,
+  deleteField,
+  doc,
+  onSnapshot,
+  orderBy,
+  query,
+  runTransaction,
+  serverTimestamp,
+  type QueryDocumentSnapshot,
+  type Timestamp,
+} from 'firebase/firestore';
+
+import { useAuth } from '@/context/AuthContext';
+import { db } from '@/services/firebase';
 
 export type LobbyGame = {
   id: string;
   name: string;
   players: number;
   maxPlayers: number;
+  status: 'waiting' | 'active' | 'completed';
+  hostId?: string;
+  hostName?: string | null;
+};
+
+type FirestoreLobbyGame = {
+  name: string;
+  maxPlayers: number;
+  playerCount?: number;
+  playerIds?: string[];
+  status?: 'waiting' | 'active' | 'completed';
+  hostId?: string;
+  hostName?: string | null;
+  players?: Record<
+    string,
+    {
+      displayName?: string | null;
+      joinedAt?: Timestamp | null;
+      leftAt?: Timestamp | null;
+    }
+  >;
+  state?: {
+    currentPlayer?: string;
+    lastUpdatedAt?: Timestamp | null;
+  };
 };
 
 type GameLobbyContextValue = {
   games: LobbyGame[];
-  createGame: (name: string) => LobbyGame;
+  loading: boolean;
+  createGame: (name: string, options?: { maxPlayers?: number }) => Promise<LobbyGame>;
+  joinGame: (gameId: string) => Promise<void>;
+  leaveGame: (gameId: string) => Promise<void>;
 };
 
 const GameLobbyContext = createContext<GameLobbyContextValue | undefined>(undefined);
 
-const initialGames: LobbyGame[] = [
-  { id: 'game-1', name: 'Evening Match', players: 1, maxPlayers: 2 },
-  { id: 'game-2', name: 'Weekend Tournament', players: 2, maxPlayers: 2 },
-  { id: 'game-3', name: 'Strategy Session', players: 1, maxPlayers: 2 },
-];
+function mapSnapshotToLobbyGame(snapshot: QueryDocumentSnapshot<FirestoreLobbyGame>): LobbyGame {
+  const data = snapshot.data();
+  const players = Array.isArray(data.playerIds) ? data.playerIds.length : data.playerCount ?? 0;
 
-function createGameFromName(name: string): LobbyGame {
   return {
-    id: `${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
-    name,
-    players: 1,
-    maxPlayers: 2,
+    id: snapshot.id,
+    name: data.name,
+    maxPlayers: data.maxPlayers,
+    players,
+    status: data.status ?? 'waiting',
+    hostId: data.hostId,
+    hostName: data.hostName,
   };
 }
 
 export function GameLobbyProvider({ children }: { children: ReactNode }) {
-  const [games, setGames] = useState<LobbyGame[]>(initialGames);
+  const { user } = useAuth();
+  const [games, setGames] = useState<LobbyGame[]>([]);
+  const [loading, setLoading] = useState(true);
 
-  const createGame = (name: string) => {
-    const trimmedName = name.trim();
+  useEffect(() => {
+    const gamesCollection = collection(db, 'games') as CollectionReference<FirestoreLobbyGame>;
+    const gamesQuery = query(gamesCollection, orderBy('updatedAt', 'desc'));
 
-    if (!trimmedName) {
-      throw new Error('Game name is required');
-    }
+    const unsubscribe = onSnapshot(
+      gamesQuery,
+      (snapshot) => {
+        const nextGames = snapshot.docs.map(mapSnapshotToLobbyGame);
+        setGames(nextGames);
+        setLoading(false);
+      },
+      (error) => {
+        console.error('Failed to subscribe to games:', error);
+        setGames([]);
+        setLoading(false);
+      },
+    );
 
-    const newGame = createGameFromName(trimmedName);
-    setGames((previous) => [...previous, newGame]);
-    return newGame;
-  };
+    return unsubscribe;
+  }, []);
 
-  const value = useMemo(() => ({ games, createGame }), [games]);
+  const createGame = useCallback(
+    async (name: string, options?: { maxPlayers?: number }) => {
+      const trimmedName = name.trim();
+
+      if (!trimmedName) {
+        throw new Error('Game name is required');
+      }
+
+      if (!user) {
+        throw new Error('You must be signed in to create a game.');
+      }
+
+      const maxPlayers = options?.maxPlayers ?? 2;
+      const displayName = user.displayName ?? user.email ?? 'Host';
+
+      const newGame = {
+        name: trimmedName,
+        maxPlayers,
+        playerIds: [user.uid],
+        playerCount: 1,
+        status: 'waiting' as const,
+        hostId: user.uid,
+        hostName: displayName,
+        players: {
+          [user.uid]: {
+            displayName,
+            joinedAt: serverTimestamp(),
+          },
+        },
+        createdAt: serverTimestamp(),
+        updatedAt: serverTimestamp(),
+        state: {
+          currentPlayer: 'north',
+          lastUpdatedAt: serverTimestamp(),
+        },
+      };
+
+      const docRef = await addDoc(collection(db, 'games'), newGame);
+
+      return {
+        id: docRef.id,
+        name: trimmedName,
+        maxPlayers,
+        players: 1,
+        status: 'waiting',
+        hostId: user.uid,
+        hostName: displayName,
+      } satisfies LobbyGame;
+    },
+    [user],
+  );
+
+  const joinGame = useCallback(
+    async (gameId: string) => {
+      if (!user) {
+        throw new Error('You must be signed in to join a game.');
+      }
+
+      const gameRef = doc(db, 'games', gameId);
+
+      await runTransaction(db, async (transaction) => {
+        const snapshot = await transaction.get(gameRef);
+
+        if (!snapshot.exists()) {
+          throw new Error('The selected game no longer exists.');
+        }
+
+        const data = snapshot.data() as FirestoreLobbyGame;
+        const playerIds = data.playerIds ?? [];
+        const currentCount = data.playerCount ?? playerIds.length;
+
+        if (playerIds.includes(user.uid)) {
+          return;
+        }
+
+        if (currentCount >= data.maxPlayers) {
+          throw new Error('This game is already full.');
+        }
+
+        const nextCount = currentCount + 1;
+        const nextStatus = nextCount >= 2 ? 'active' : data.status ?? 'waiting';
+
+        transaction.update(gameRef, {
+          playerIds: [...playerIds, user.uid],
+          playerCount: nextCount,
+          status: nextStatus,
+          updatedAt: serverTimestamp(),
+          [`players.${user.uid}`]: {
+            displayName: user.displayName ?? user.email ?? 'Player',
+            joinedAt: serverTimestamp(),
+          },
+        });
+      });
+    },
+    [user],
+  );
+
+  const leaveGame = useCallback(
+    async (gameId: string) => {
+      if (!user) {
+        throw new Error('You must be signed in to leave a game.');
+      }
+
+      const gameRef = doc(db, 'games', gameId);
+
+      await runTransaction(db, async (transaction) => {
+        const snapshot = await transaction.get(gameRef);
+
+        if (!snapshot.exists()) {
+          return;
+        }
+
+        const data = snapshot.data() as FirestoreLobbyGame;
+        const playerIds = data.playerIds ?? [];
+
+        if (!playerIds.includes(user.uid)) {
+          return;
+        }
+
+        const nextIds = playerIds.filter((id) => id !== user.uid);
+        const currentCount = data.playerCount ?? playerIds.length;
+        const nextCount = Math.max(0, currentCount - 1);
+        const nextStatus = nextCount <= 1 ? 'waiting' : data.status ?? 'active';
+
+        transaction.update(gameRef, {
+          playerIds: nextIds,
+          playerCount: nextCount,
+          status: nextStatus,
+          updatedAt: serverTimestamp(),
+          [`players.${user.uid}`]: deleteField(),
+        });
+      });
+    },
+    [user],
+  );
+
+  const value = useMemo(
+    () => ({
+      games,
+      loading,
+      createGame,
+      joinGame,
+      leaveGame,
+    }),
+    [createGame, games, joinGame, leaveGame, loading],
+  );
 
   return <GameLobbyContext.Provider value={value}>{children}</GameLobbyContext.Provider>;
 }

@@ -1,5 +1,6 @@
 import { useRouter } from 'expo-router';
-import { Alert, FlatList, Pressable, StyleSheet, View } from 'react-native';
+import { useState } from 'react';
+import { ActivityIndicator, Alert, FlatList, Pressable, StyleSheet, View } from 'react-native';
 
 import { ThemedText } from '@/components/themed-text';
 import { ThemedView } from '@/components/themed-view';
@@ -11,10 +12,12 @@ type GameListItemProps = {
   name: string;
   players: number;
   maxPlayers: number;
+  status?: string;
   onPress: () => void;
+  disabled?: boolean;
 };
 
-function GameListItem({ name, players, maxPlayers, onPress }: GameListItemProps) {
+function GameListItem({ name, players, maxPlayers, status, onPress, disabled }: GameListItemProps) {
   const colorScheme = useColorScheme() ?? 'light';
   const borderColor = Colors[colorScheme].tint;
 
@@ -23,27 +26,41 @@ function GameListItem({ name, players, maxPlayers, onPress }: GameListItemProps)
       onPress={onPress}
       accessibilityRole="button"
       accessibilityLabel={`${name}, ${players} of ${maxPlayers} players`}
+      disabled={disabled}
       style={({ pressed }) => [
         styles.gameCard,
         { borderColor },
         pressed && styles.gameCardPressed,
+        disabled && styles.gameCardDisabled,
       ]}>
       <ThemedText type="subtitle" style={styles.gameTitle}>
         {name}
       </ThemedText>
       <ThemedText style={styles.gamePlayers}>{players >= maxPlayers ? 'Full' : `${players}/${maxPlayers} players`}</ThemedText>
+      {status ? <ThemedText style={styles.gameStatus}>{status}</ThemedText> : null}
     </Pressable>
   );
 }
 
 export default function OnlineGamesScreen() {
-  const { games } = useGameLobby();
+  const { games, loading, joinGame } = useGameLobby();
   const router = useRouter();
   const colorScheme = useColorScheme() ?? 'light';
   const accentColor = Colors[colorScheme].tint;
+  const [joiningGameId, setJoiningGameId] = useState<string | null>(null);
 
-  const handleJoinGame = (gameName: string) => {
-    Alert.alert('Join Game', `Attempting to join "${gameName}"...`);
+  const handleJoinGame = async (gameId: string) => {
+    setJoiningGameId(gameId);
+
+    try {
+      await joinGame(gameId);
+      router.push({ pathname: '/online/game/[id]', params: { id: gameId } });
+    } catch (error) {
+      const message = error instanceof Error ? error.message : 'Unable to join this game. Please try again.';
+      Alert.alert('Join Game', message);
+    } finally {
+      setJoiningGameId(null);
+    }
   };
 
   return (
@@ -67,20 +84,30 @@ export default function OnlineGamesScreen() {
           </ThemedText>
         </Pressable>
       </View>
-      <FlatList
-        data={games}
-        keyExtractor={(item) => item.id}
-        contentContainerStyle={[styles.listContent, games.length === 0 && styles.emptyListContent]}
-        renderItem={({ item }) => (
-          <GameListItem
-            name={item.name}
-            players={item.players}
-            maxPlayers={item.maxPlayers}
-            onPress={() => handleJoinGame(item.name)}
-          />
-        )}
-        ListEmptyComponent={<ThemedText style={styles.emptyText}>No games available yet. Be the first to create one!</ThemedText>}
-      />
+      {loading ? (
+        <View style={styles.loadingState}>
+          <ActivityIndicator />
+        </View>
+      ) : (
+        <FlatList
+          data={games}
+          keyExtractor={(item) => item.id}
+          contentContainerStyle={[styles.listContent, games.length === 0 && styles.emptyListContent]}
+          renderItem={({ item }) => (
+            <GameListItem
+              name={item.name}
+              players={item.players}
+              maxPlayers={item.maxPlayers}
+              status={item.status}
+              onPress={() => handleJoinGame(item.id)}
+              disabled={item.players >= item.maxPlayers || joiningGameId === item.id}
+            />
+          )}
+          ListEmptyComponent={
+            <ThemedText style={styles.emptyText}>No games available yet. Be the first to create one!</ThemedText>
+          }
+        />
+      )}
     </ThemedView>
   );
 }
@@ -137,11 +164,24 @@ const styles = StyleSheet.create({
   gameCardPressed: {
     transform: [{ scale: 0.99 }],
   },
+  gameCardDisabled: {
+    opacity: 0.6,
+  },
   gameTitle: {
     textAlign: 'left',
   },
   gamePlayers: {
     fontSize: 14,
     opacity: 0.7,
+  },
+  gameStatus: {
+    fontSize: 12,
+    opacity: 0.7,
+    textTransform: 'capitalize',
+  },
+  loadingState: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
   },
 });
