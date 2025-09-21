@@ -30,6 +30,13 @@ type ControlButtonProps = {
   disabled?: boolean;
 };
 
+type WallOrientationButtonProps = {
+  orientation: Orientation;
+  isActive: boolean;
+  onPress: () => void;
+  disabled?: boolean;
+};
+
 type WallsRemaining = Record<PlayerId, number>;
 
 type Mode = 'move' | 'wall';
@@ -164,6 +171,54 @@ export function QuoridorGame() {
     </Pressable>
   );
 
+  const WallOrientationButton = ({ orientation, isActive, onPress, disabled }: WallOrientationButtonProps) => {
+    const previewColor = colorScheme === 'dark' ? '#f8ede0' : '#5d3b21';
+
+    return (
+      <Pressable
+        accessibilityRole="button"
+        accessibilityLabel={`${orientation === 'horizontal' ? 'Horizontal' : 'Vertical'} wall`}
+        onPress={onPress}
+        disabled={disabled}
+        style={[
+          styles.wallOptionButton,
+          {
+            backgroundColor: isActive
+              ? controlPalette.accent
+              : disabled
+                ? controlPalette.disabled
+                : controlPalette.base,
+            borderColor: isActive
+              ? controlPalette.accent
+              : colorScheme === 'dark'
+                ? 'rgba(255,255,255,0.12)'
+                : 'rgba(0,0,0,0.08)',
+          },
+        ]}>
+        <View
+          style={[
+            styles.wallPreview,
+            orientation === 'horizontal' ? styles.horizontalWallPreview : styles.verticalWallPreview,
+            { backgroundColor: previewColor },
+          ]}
+        />
+        <ThemedText
+          style={[
+            styles.wallOptionLabel,
+            {
+              color: isActive
+                ? controlPalette.activeText
+                : disabled
+                  ? controlPalette.disabledText
+                  : controlPalette.text,
+            },
+          ]}>
+          {orientation === 'horizontal' ? 'Horizontal' : 'Vertical'}
+        </ThemedText>
+      </Pressable>
+    );
+  };
+
   const heading = winner ? `${PLAYER_LABELS[winner]} wins!` : `${PLAYER_LABELS[currentPlayer]} to play`;
   const headingColor = winner ? playerColors[winner] : playerColors[currentPlayer];
 
@@ -271,19 +326,19 @@ export function QuoridorGame() {
   return (
     <ScrollView contentContainerStyle={styles.scrollContainer}>
       <ThemedView style={styles.container}>
-        <ThemedText type="title" style={styles.title}>
-          Quoridor
-        </ThemedText>
-        <ThemedText style={styles.lead}>
-          Race your pawn to the opposite side of the board while building fences to slow your opponent down.
-        </ThemedText>
+        {/*<ThemedText type="title" style={styles.title}>*/}
+        {/*  Quoridor*/}
+        {/*</ThemedText>*/}
+        {/*<ThemedText style={styles.lead}>*/}
+        {/*  Race your pawn to the opposite side of the board while building fences to slow your opponent down.*/}
+        {/*</ThemedText>*/}
 
         <View style={styles.statusCard}>
           <View style={styles.statusHeader}>
             <View style={[styles.statusDot, { backgroundColor: headingColor }]} />
             <ThemedText style={[styles.statusHeading, { color: headingColor }]}>{heading}</ThemedText>
           </View>
-          <ThemedText style={styles.helperText}>{helperMessage}</ThemedText>
+          {/*<ThemedText style={styles.helperText}>{helperMessage}</ThemedText>*/}
         </View>
 
         <View style={styles.summaryRow}>
@@ -293,13 +348,27 @@ export function QuoridorGame() {
               <View style={styles.playerSummaryText}>
                 <ThemedText style={styles.playerName}>{PLAYER_LABELS[player]}</ThemedText>
                 <ThemedText style={styles.playerDetail}>Walls left: {wallsRemaining[player]}</ThemedText>
-                <ThemedText style={styles.playerDetail}>
-                  Pawn at {formatPosition(positions[player])}
-                </ThemedText>
+                {/*<ThemedText style={styles.playerDetail}>*/}
+                {/*  Pawn at {formatPosition(positions[player])}*/}
+                {/*</ThemedText>*/}
               </View>
             </View>
           ))}
         </View>
+
+        <View style={styles.boardWrapper}>
+          <QuoridorBoard
+            currentPlayer={currentPlayer}
+            positions={positions}
+            walls={walls}
+            validMoves={validMoves}
+            mode={mode}
+            availableWalls={availableWalls}
+            onCellPress={handleCellPress}
+            onWallPress={handleWallPlacement}
+          />
+        </View>
+
 
         <View style={styles.controlsSection}>
           <View style={styles.modeRow}>
@@ -317,25 +386,27 @@ export function QuoridorGame() {
             />
           </View>
           {mode === 'wall' ? (
-            <View style={styles.modeRow}>
-              <ControlButton
-                label="Horizontal"
-                onPress={() => {
-                  setWallOrientation('horizontal');
-                  setStatusMessage(null);
-                }}
-                active={wallOrientation === 'horizontal'}
-                disabled={winner !== null}
-              />
-              <ControlButton
-                label="Vertical"
-                onPress={() => {
-                  setWallOrientation('vertical');
-                  setStatusMessage(null);
-                }}
-                active={wallOrientation === 'vertical'}
-                disabled={winner !== null}
-              />
+            <View style={styles.wallControls}>
+              <View style={styles.wallOptionsRow}>
+                <WallOrientationButton
+                  orientation="horizontal"
+                  isActive={wallOrientation === 'horizontal'}
+                  onPress={() => {
+                    setWallOrientation('horizontal');
+                    setStatusMessage(null);
+                  }}
+                  disabled={winner !== null}
+                />
+                <WallOrientationButton
+                  orientation="vertical"
+                  isActive={wallOrientation === 'vertical'}
+                  onPress={() => {
+                    setWallOrientation('vertical');
+                    setStatusMessage(null);
+                  }}
+                  disabled={winner !== null}
+                />
+              </View>
               <ThemedText style={styles.wallsHint}>
                 Walls this turn: {wallsRemaining[currentPlayer]}
               </ThemedText>
@@ -343,38 +414,38 @@ export function QuoridorGame() {
           ) : null}
         </View>
 
-        <View style={styles.boardWrapper}>
-          <QuoridorBoard
-            currentPlayer={currentPlayer}
-            positions={positions}
-            walls={walls}
-            validMoves={validMoves}
-            mode={mode}
-            availableWalls={availableWalls}
-            onCellPress={handleCellPress}
-            onWallPress={handleWallPlacement}
-          />
-        </View>
+        {/*<View style={styles.boardWrapper}>*/}
+        {/*  <QuoridorBoard*/}
+        {/*    currentPlayer={currentPlayer}*/}
+        {/*    positions={positions}*/}
+        {/*    walls={walls}*/}
+        {/*    validMoves={validMoves}*/}
+        {/*    mode={mode}*/}
+        {/*    availableWalls={availableWalls}*/}
+        {/*    onCellPress={handleCellPress}*/}
+        {/*    onWallPress={handleWallPlacement}*/}
+        {/*  />*/}
+        {/*</View>*/}
 
-        <Pressable
-          style={[styles.resetButton, { backgroundColor: Colors[colorScheme].tint }]}
-          onPress={startNewGame}>
-          <ThemedText
-            style={[
-              styles.resetButtonText,
-              { color: colorScheme === 'dark' ? '#151718' : '#fff' },
-            ]}>
-            Start a new game
-          </ThemedText>
-        </Pressable>
+        {/*<Pressable*/}
+        {/*  style={[styles.resetButton, { backgroundColor: Colors[colorScheme].tint }]}*/}
+        {/*  onPress={startNewGame}>*/}
+        {/*  <ThemedText*/}
+        {/*    style={[*/}
+        {/*      styles.resetButtonText,*/}
+        {/*      { color: colorScheme === 'dark' ? '#151718' : '#fff' },*/}
+        {/*    ]}>*/}
+        {/*    Start a new game*/}
+        {/*  </ThemedText>*/}
+        {/*</Pressable>*/}
 
-        <ThemedText style={styles.footerNote}>
-          Every turn you must either step one space orthogonally or drop a wall segment. Walls cannot overlap or remove an
-          opponent&apos;s only route to their goal row.
-        </ThemedText>
-        <ThemedText style={styles.footerNote}>
-          Coordinates are shown as rows and columns to make it easy to discuss moves with a friend while you play.
-        </ThemedText>
+        {/*<ThemedText style={styles.footerNote}>*/}
+        {/*  Every turn you must either step one space orthogonally or drop a wall segment. Walls cannot overlap or remove an*/}
+        {/*  opponent&apos;s only route to their goal row.*/}
+        {/*</ThemedText>*/}
+        {/*<ThemedText style={styles.footerNote}>*/}
+        {/*  Coordinates are shown as rows and columns to make it easy to discuss moves with a friend while you play.*/}
+        {/*</ThemedText>*/}
       </ThemedView>
     </ScrollView>
   );
@@ -384,13 +455,14 @@ export default QuoridorGame;
 
 const styles = StyleSheet.create({
   scrollContainer: {
-    padding: 16,
+    paddingVertical: 4,
+    paddingHorizontal: 5,
     paddingBottom: 32,
   },
   container: {
-    gap: 16,
+    gap: 14,
     borderRadius: 20,
-    padding: 16,
+    padding: 10,
   },
   title: {
     textAlign: 'center',
@@ -402,7 +474,8 @@ const styles = StyleSheet.create({
   },
   statusCard: {
     borderRadius: 16,
-    padding: 16,
+    paddingVertical: 6,
+    paddingHorizontal: 12,
     gap: 8,
     borderWidth: 1,
     borderColor: 'rgba(0,0,0,0.08)',
@@ -441,7 +514,7 @@ const styles = StyleSheet.create({
   },
   playerBadge: {
     width: 12,
-    height: 56,
+    height: 46,
     borderRadius: 6,
   },
   playerSummaryText: {
@@ -468,10 +541,42 @@ const styles = StyleSheet.create({
     gap: 12,
     flexWrap: 'wrap',
   },
+  wallControls: {
+    gap: 12,
+  },
+  wallOptionsRow: {
+    flexDirection: 'row',
+    gap: 12,
+  },
+  wallOptionButton: {
+    flex: 1,
+    alignItems: 'center',
+    borderRadius: 10,
+    borderWidth: 1,
+    paddingVertical: 8,
+    paddingHorizontal: 4,
+    justifyContent: 'center',
+    gap: 12,
+  },
+  wallPreview: {
+    borderRadius: 3,
+  },
+  horizontalWallPreview: {
+    width: 40,
+    height: 8,
+  },
+  verticalWallPreview: {
+    width: 8,
+    height: 40,
+  },
+  wallOptionLabel: {
+    fontSize: 14,
+    fontWeight: '600',
+  },
   controlButton: {
     paddingVertical: 10,
     paddingHorizontal: 18,
-    borderRadius: 999,
+    borderRadius: 10,
     borderWidth: 1,
   },
   controlButtonText: {

@@ -34,9 +34,9 @@ export function QuoridorBoard({
                               }: QuoridorBoardProps) {
   const colorScheme = useColorScheme() ?? 'light';
   const { width } = useWindowDimensions();
-  const boardSize = Math.min(width - 32, 420);
-  const wallThickness = Math.max(4, boardSize * 0.035);
-  const cellSize = (boardSize - wallThickness * (BOARD_SIZE - 1)) / BOARD_SIZE;
+  const boardSize = Math.min(width - 12, 420);
+  const wallThickness = Math.max(4, boardSize * 0.033);
+  const cellSize = (boardSize - wallThickness * (BOARD_SIZE - 1) - 8) / BOARD_SIZE;
 
   const palette = useMemo(() => {
     if (colorScheme === 'dark') {
@@ -104,8 +104,8 @@ export function QuoridorBoard({
           const isCurrentPlayer = occupant === currentPlayer;
           const isValidMove = mode === 'move' && validMoveKeys.has(key) && !occupant;
 
-          const left = col * (cellSize + wallThickness);
-          const top = row * (cellSize + wallThickness);
+          const left = 2 + col * (cellSize + wallThickness);
+          const top = 2 +  row * (cellSize + wallThickness);
 
           return (
             <Pressable
@@ -176,12 +176,12 @@ export function QuoridorBoard({
               pointerEvents="none"
               style={{
                 position: 'absolute',
-                left: baseLeft,
-                top: baseTop + cellSize,
-                width: cellSize * 2 + wallThickness,
-                height: wallThickness,
+                left: baseLeft + 1,
+                top: baseTop + cellSize + 3.5,
+                width: cellSize * 2 + wallThickness + 2,
+                height: wallThickness - 3,
                 backgroundColor: palette.wall,
-                borderRadius: wallThickness / 2,
+                borderRadius: wallThickness - 10,
               }}
             />
           );
@@ -193,12 +193,12 @@ export function QuoridorBoard({
             pointerEvents="none"
             style={{
               position: 'absolute',
-              left: baseLeft + cellSize,
-              top: baseTop,
-              width: wallThickness,
-              height: cellSize * 2 + wallThickness,
+              left: baseLeft + cellSize + 3.5 ,
+              top: baseTop + 1,
+              width: wallThickness - 3,
+              height: cellSize * 2 + wallThickness + 3,
               backgroundColor: palette.wall,
-              borderRadius: wallThickness / 2,
+              borderRadius: wallThickness - 10,
             }}
           />
         );
@@ -218,11 +218,11 @@ export function QuoridorBoard({
                 onPress={() => onWallPress(wall)}
                 style={{
                   position: 'absolute',
-                  left: baseLeft,
-                  top: baseTop + cellSize,
-                  width: cellSize * 2 + wallThickness,
+                  left: baseLeft + 17,
+                  top: baseTop + cellSize + 2,
+                  width: cellSize * 2 + wallThickness - 30,
                   height: wallThickness,
-                  borderRadius: wallThickness / 2,
+                  borderRadius: wallThickness / 3,
                   backgroundColor: palette.wallHint,
                   borderWidth: 1,
                   borderColor: palette.wall,
@@ -238,11 +238,11 @@ export function QuoridorBoard({
               onPress={() => onWallPress(wall)}
               style={{
                 position: 'absolute',
-                left: baseLeft + cellSize,
-                top: baseTop,
+                left: baseLeft + cellSize + 2,
+                top: baseTop + 17,
                 width: wallThickness,
-                height: cellSize * 2 + wallThickness,
-                borderRadius: wallThickness / 2,
+                height: cellSize * 2 + wallThickness - 30,
+                borderRadius: wallThickness / 3,
                 backgroundColor: palette.wallHint,
                 borderWidth: 1,
                 borderColor: palette.wall,
@@ -258,7 +258,7 @@ export function QuoridorBoard({
 const styles = StyleSheet.create({
   board: {
     borderWidth: 2,
-    borderRadius: 16,
+    borderRadius: 9,
     overflow: 'hidden',
     position: 'relative',
     alignSelf: 'center',
