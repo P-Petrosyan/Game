@@ -6,6 +6,7 @@ import { db } from '@/services/firebase';
 export type GamePlayer = {
   displayName?: string | null;
   joinedAt?: Date | null;
+  ready?: boolean;
 };
 
 export type GameState = {
@@ -13,7 +14,7 @@ export type GameState = {
   name: string;
   hostId?: string;
   hostName?: string | null;
-  status?: string;
+  status?: 'waiting' | 'active' | 'starting' | 'playing' | 'completed';
   maxPlayers?: number;
   playerIds?: string[];
   players?: Record<string, GamePlayer>;

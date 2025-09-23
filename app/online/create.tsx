@@ -18,6 +18,7 @@ import { useColorScheme } from '@/hooks/use-color-scheme';
 
 export default function CreateGameScreen() {
   const [gameName, setGameName] = useState('');
+  const [gameCode, setGameCode] = useState('');
   const [submitting, setSubmitting] = useState(false);
   const router = useRouter();
   const { createGame } = useGameLobby();
@@ -37,7 +38,7 @@ export default function CreateGameScreen() {
     setSubmitting(true);
 
     try {
-      const newGame = await createGame(gameName);
+      const newGame = await createGame(gameName, gameCode);
       setGameName('');
       Alert.alert('Game created', `"${newGame.name}" is now visible in the online lobby.`, [
         {
@@ -78,6 +79,15 @@ export default function CreateGameScreen() {
             value={gameName}
             onChangeText={setGameName}
             placeholder="e.g. Saturday Showdown"
+            placeholderTextColor={placeholderColor}
+            style={[styles.input, { borderColor: accentColor, color: textColor }]}
+            returnKeyType="done"
+            onSubmitEditing={handleCreate}
+          />
+          <TextInput
+            value={gameCode}
+            onChangeText={setGameCode}
+            placeholder="1234"
             placeholderTextColor={placeholderColor}
             style={[styles.input, { borderColor: accentColor, color: textColor }]}
             returnKeyType="done"

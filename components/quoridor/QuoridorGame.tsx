@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useState } from 'react';
+import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { Pressable, ScrollView, StyleSheet, View } from 'react-native';
 
 import { ThemedText } from '@/components/themed-text';
@@ -22,6 +22,7 @@ import {
   isWinningPosition,
 } from './game-logic';
 import { QuoridorBoard } from './QuoridorBoard';
+import { WallPalette } from './WallPalette';
 
 type ControlButtonProps = {
   label: string;
@@ -39,7 +40,7 @@ type WallOrientationButtonProps = {
 
 type WallsRemaining = Record<PlayerId, number>;
 
-type Mode = 'move' | 'wall';
+type Mode = 'move' | 'wall' | 'drag';
 
 const PLAYER_LABELS: Record<PlayerId, string> = {
   north: 'North',
@@ -63,6 +64,8 @@ export function QuoridorGame() {
   });
   const [currentPlayer, setCurrentPlayer] = useState<PlayerId>('north');
   const [mode, setMode] = useState<Mode>('move');
+  const [isDragging, setIsDragging] = useState(false);
+  const boardRef = useRef<View>(null);
   const [wallOrientation, setWallOrientation] = useState<Orientation>('horizontal');
   const [winner, setWinner] = useState<PlayerId | null>(null);
   const [statusMessage, setStatusMessage] = useState<string | null>(null);
@@ -114,14 +117,14 @@ export function QuoridorGame() {
   }, [blockedEdges, currentPlayer, opponent, positions, winner]);
 
   const availableWalls = useMemo(() => {
-    if (winner || mode !== 'wall' || wallsRemaining[currentPlayer] <= 0) {
+    if (winner || (mode !== 'wall' && mode !== 'drag') || wallsRemaining[currentPlayer] <= 0) {
       return [];
     }
     return computeAvailableWalls(wallOrientation, walls, positions);
   }, [currentPlayer, mode, positions, wallOrientation, walls, wallsRemaining, winner]);
 
   useEffect(() => {
-    if (mode !== 'wall' || winner || wallsRemaining[currentPlayer] <= 0) {
+    if ((mode !== 'wall' && mode !== 'drag') || winner || wallsRemaining[currentPlayer] <= 0) {
       return;
     }
 
@@ -255,7 +258,7 @@ export function QuoridorGame() {
       return;
     }
 
-    if (nextMode === 'wall') {
+    if (nextMode === 'wall' || nextMode === 'drag') {
       if (!canCurrentPlayerPlaceWall) {
         setStatusMessage('You have no walls left to place.');
         return;
@@ -264,6 +267,11 @@ export function QuoridorGame() {
 
     setStatusMessage(null);
     setMode(nextMode);
+  };
+
+  const handleWallSelect = (orientation: Orientation) => {
+    setWallOrientation(orientation);
+    setStatusMessage(`Selected ${orientation} wall. Tap a highlighted area on the board to place it.`);
   };
 
   const handleCellPress = (target: Position) => {
@@ -294,7 +302,7 @@ export function QuoridorGame() {
   };
 
   const handleWallPlacement = (wall: Wall) => {
-    if (winner || mode !== 'wall') {
+    if (winner || (mode !== 'wall' && mode !== 'drag')) {
       return;
     }
 
@@ -366,9 +374,9 @@ export function QuoridorGame() {
             availableWalls={availableWalls}
             onCellPress={handleCellPress}
             onWallPress={handleWallPlacement}
+            boardRef={boardRef}
           />
         </View>
-
 
         <View style={styles.controlsSection}>
           <View style={styles.modeRow}>
@@ -384,7 +392,22 @@ export function QuoridorGame() {
               active={mode === 'wall'}
               disabled={winner !== null || !canCurrentPlayerPlaceWall}
             />
+            <ControlButton
+              label="Drag walls"
+              onPress={() => handleSelectMode('drag')}
+              active={mode === 'drag'}
+              disabled={winner !== null || !canCurrentPlayerPlaceWall}
+            />
           </View>
+
+          {mode === 'drag' && (
+            <WallPalette
+              wallsRemaining={wallsRemaining[currentPlayer]}
+              onWallSelect={handleWallSelect}
+              selectedOrientation={wallOrientation}
+              disabled={winner !== null}
+            />
+          )}
           {mode === 'wall' ? (
             <View style={styles.wallControls}>
               <View style={styles.wallOptionsRow}>
@@ -412,6 +435,11 @@ export function QuoridorGame() {
               </ThemedText>
             </View>
           ) : null}
+          {mode === 'drag' && (
+            <ThemedText style={styles.wallsHint}>
+              Select a wall type below, then tap a highlighted area on the board to place it
+            </ThemedText>
+          )}
         </View>
 
         {/*<View style={styles.boardWrapper}>*/}
@@ -461,7 +489,7 @@ const styles = StyleSheet.create({
   },
   container: {
     gap: 14,
-    borderRadius: 20,
+    borderRadius: 7,
     padding: 10,
   },
   title: {
@@ -473,12 +501,12 @@ const styles = StyleSheet.create({
     textAlign: 'center',
   },
   statusCard: {
-    borderRadius: 16,
+    borderRadius: 7,
     paddingVertical: 6,
     paddingHorizontal: 12,
     gap: 8,
     borderWidth: 1,
-    borderColor: 'rgba(0,0,0,0.08)',
+    borderColor: 'rgb(89,87,87)',
   },
   statusHeader: {
     flexDirection: 'row',
@@ -508,14 +536,14 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     gap: 12,
     padding: 12,
-    borderRadius: 14,
+    borderRadius: 7,
     borderWidth: 1,
-    borderColor: 'rgba(0,0,0,0.08)',
+    borderColor: 'rgb(89,87,87)',
   },
   playerBadge: {
     width: 12,
     height: 46,
-    borderRadius: 6,
+    borderRadius: 3,
   },
   playerSummaryText: {
     flex: 1,
@@ -538,7 +566,7 @@ const styles = StyleSheet.create({
   modeRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 12,
+    gap: 8,
     flexWrap: 'wrap',
   },
   wallControls: {
@@ -551,12 +579,12 @@ const styles = StyleSheet.create({
   wallOptionButton: {
     flex: 1,
     alignItems: 'center',
-    borderRadius: 10,
+    borderRadius: 7,
     borderWidth: 1,
     paddingVertical: 8,
     paddingHorizontal: 4,
     justifyContent: 'center',
-    gap: 12,
+    gap: 8,
   },
   wallPreview: {
     borderRadius: 3,
@@ -576,7 +604,7 @@ const styles = StyleSheet.create({
   controlButton: {
     paddingVertical: 10,
     paddingHorizontal: 18,
-    borderRadius: 10,
+    borderRadius: 7,
     borderWidth: 1,
   },
   controlButtonText: {

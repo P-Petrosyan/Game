@@ -11,10 +11,12 @@ export type QuoridorBoardProps = {
   positions: Record<PlayerId, Position>;
   walls: Wall[];
   validMoves: Position[];
-  mode: 'move' | 'wall';
+  mode: 'move' | 'wall' | 'drag';
   availableWalls: Wall[];
   onCellPress: (position: Position) => void;
   onWallPress: (wall: Wall) => void;
+  onWallDrop?: (x: number, y: number, orientation: 'horizontal' | 'vertical') => void;
+  boardRef?: React.RefObject<View>;
 };
 
 const PAWN_LABEL: Record<PlayerId, string> = {
@@ -31,6 +33,8 @@ export function QuoridorBoard({
                                 availableWalls,
                                 onCellPress,
                                 onWallPress,
+                                onWallDrop,
+                                boardRef,
                               }: QuoridorBoardProps) {
   const colorScheme = useColorScheme() ?? 'light';
   const { width } = useWindowDimensions();
@@ -44,7 +48,7 @@ export function QuoridorBoard({
         board: '#1f1b16',
         cell: '#3a3128',
         grid: '#7a5b3f',
-        wall: '#d7a86e',
+        wall: '#a8672d',
         pawn: {
           north: '#9fc5ff',
           south: '#f39c96',
@@ -87,8 +91,16 @@ export function QuoridorBoard({
     [boardSize, palette.board, palette.grid],
   );
 
+  const handleBoardLayout = (event: any) => {
+    if (boardRef?.current) {
+      boardRef.current.measure((x, y, width, height, pageX, pageY) => {
+        // Store board position for drop calculations
+      });
+    }
+  };
+
   return (
-    <View style={boardStyle}>
+    <View ref={boardRef} style={boardStyle} onLayout={handleBoardLayout}>
       {Array.from({ length: BOARD_SIZE }).map((_, row) =>
         Array.from({ length: BOARD_SIZE }).map((__, col) => {
           const position: Position = { row, col };
@@ -176,9 +188,9 @@ export function QuoridorBoard({
               pointerEvents="none"
               style={{
                 position: 'absolute',
-                left: baseLeft + 1,
+                left: baseLeft + 2,
                 top: baseTop + cellSize + 3.5,
-                width: cellSize * 2 + wallThickness + 2,
+                width: cellSize * 2 + wallThickness,
                 height: wallThickness - 3,
                 backgroundColor: palette.wall,
                 borderRadius: wallThickness - 10,
@@ -194,9 +206,9 @@ export function QuoridorBoard({
             style={{
               position: 'absolute',
               left: baseLeft + cellSize + 3.5 ,
-              top: baseTop + 1,
+              top: baseTop + 2,
               width: wallThickness - 3,
-              height: cellSize * 2 + wallThickness + 3,
+              height: cellSize * 2 + wallThickness,
               backgroundColor: palette.wall,
               borderRadius: wallThickness - 10,
             }}
@@ -204,7 +216,7 @@ export function QuoridorBoard({
         );
       })}
 
-      {mode === 'wall'
+      {(mode === 'wall' || mode === 'drag')
         ? availableWalls.map((wall) => {
           const baseLeft = wall.col * (cellSize + wallThickness);
           const baseTop = wall.row * (cellSize + wallThickness);
@@ -223,7 +235,7 @@ export function QuoridorBoard({
                   width: cellSize * 2 + wallThickness - 30,
                   height: wallThickness,
                   borderRadius: wallThickness / 3,
-                  backgroundColor: palette.wallHint,
+                  backgroundColor: mode === 'drag' ? 'rgba(241, 196, 15, 0.6)' : palette.wallHint,
                   borderWidth: 1,
                   borderColor: palette.wall,
                 }}
@@ -243,7 +255,7 @@ export function QuoridorBoard({
                 width: wallThickness,
                 height: cellSize * 2 + wallThickness - 30,
                 borderRadius: wallThickness / 3,
-                backgroundColor: palette.wallHint,
+                backgroundColor: mode === 'drag' ? 'rgba(241, 196, 15, 0.6)' : palette.wallHint,
                 borderWidth: 1,
                 borderColor: palette.wall,
               }}
