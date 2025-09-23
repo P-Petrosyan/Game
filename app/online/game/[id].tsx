@@ -4,6 +4,7 @@ import { ActivityIndicator, Alert, Pressable, ScrollView, StyleSheet, View } fro
 
 import { ThemedText } from '@/components/themed-text';
 import { ThemedView } from '@/components/themed-view';
+import { MultiplayerQuoridorGame } from '@/components/quoridor/MultiplayerQuoridorGame';
 import { Colors } from '@/constants/theme';
 import { useAuth } from '@/context/AuthContext';
 import { useGameLobby } from '@/context/GameLobbyContext';
@@ -30,14 +31,42 @@ export default function GameSessionScreen() {
   const { leaveGame } = useGameLobby();
   const colorScheme = useColorScheme() ?? 'light';
   const accentColor = Colors[colorScheme].tint;
-  const [updatingTurn, setUpdatingTurn] = useState(false);
   const [leaving, setLeaving] = useState(false);
+  const [isReady, setIsReady] = useState(false);
+  const [countdown, setCountdown] = useState(0);
 
   useEffect(() => {
     if (!gameId) {
       router.replace('/online');
     }
   }, [gameId, router]);
+
+  useEffect(() => {
+    if (!gameState?.players || !user) return;
+    
+    const playerIds = Object.keys(gameState.players);
+    if (playerIds.length === 1 && playerIds[0] !== user.uid) {
+      // Game was abandoned, delete it
+      handleLeaveGame();
+    }
+  }, [gameState?.players, user]);
+
+  useEffect(() => {
+    if (gameState?.status === 'starting' && countdown === 0) {
+      setCountdown(3);
+      const timer = setInterval(() => {
+        setCountdown(prev => {
+          if (prev <= 1) {
+            clearInterval(timer);
+            updateGameStatus('playing');
+            return 0;
+          }
+          return prev - 1;
+        });
+      }, 1000);
+      return () => clearInterval(timer);
+    }
+  }, [gameState?.status]);
 
   const currentPlayer = useMemo(() => {
     const rawValue = (gameState?.state?.currentPlayer as string | undefined) ?? 'north';
@@ -58,31 +87,51 @@ export default function GameSessionScreen() {
     }));
   }, [gameState?.players]);
 
-  const handleAdvanceTurn = async () => {
-    if (!gameId || !gameState) {
-      return;
-    }
+  const isWaitingForPlayers = playerEntries.length < 2;
+  const bothPlayersReady = playerEntries.length === 2 && 
+    Object.values(gameState?.players || {}).every(p => p.ready);
+  const isGameStarted = gameState?.status === 'playing';
+  const isCountingDown = gameState?.status === 'starting' && countdown > 0;
 
-    if (!user) {
-      Alert.alert('Sign in required', 'You must be signed in to sync moves online.');
-      return;
-    }
-
-    setUpdatingTurn(true);
-
+  const handleReady = async () => {
+    if (!gameId || !user) return;
+    
     try {
-      const nextPlayer = currentPlayer === 'north' ? 'south' : 'north';
       const gameRef = doc(db, 'games', gameId);
-
       await updateDoc(gameRef, {
-        'state.currentPlayer': nextPlayer,
-        'state.lastUpdatedAt': serverTimestamp(),
+        [`players.${user.uid}.ready`]: !isReady,
+        updatedAt: serverTimestamp(),
       });
-    } catch (syncError) {
-      const message = syncError instanceof Error ? syncError.message : 'Unable to update the turn. Try again shortly.';
-      Alert.alert('Sync failed', message);
-    } finally {
-      setUpdatingTurn(false);
+      setIsReady(!isReady);
+      
+      // Check if both players are ready
+      const playerIds = Object.keys(gameState?.players || {});
+      if (playerIds.length === 2) {
+        const allReady = playerIds.every(id => 
+          gameState?.players?.[id]?.ready || (id === user.uid && !isReady)
+        );
+        if (allReady) {
+          await updateDoc(gameRef, {
+            status: 'starting',
+            updatedAt: serverTimestamp(),
+          });
+        }
+      }
+    } catch (error) {
+      Alert.alert('Error', 'Failed to update ready status');
+    }
+  };
+
+  const updateGameStatus = async (status: string) => {
+    if (!gameId) return;
+    try {
+      const gameRef = doc(db, 'games', gameId);
+      await updateDoc(gameRef, {
+        status,
+        updatedAt: serverTimestamp(),
+      });
+    } catch (error) {
+      console.error('Failed to update game status:', error);
     }
   };
 
@@ -136,6 +185,15 @@ export default function GameSessionScreen() {
               <ThemedText type="defaultSemiBold">Back to lobby</ThemedText>
             </Pressable>
           </View>
+        ) : isGameStarted ? (
+          <MultiplayerQuoridorGame gameId={gameId} />
+        ) : isCountingDown ? (
+          <View style={styles.countdownContainer}>
+            <ThemedText type="title" style={styles.countdownText}>
+              {countdown}
+            </ThemedText>
+            <ThemedText style={styles.countdownLabel}>Game starting...</ThemedText>
+          </View>
         ) : (
           <>
             <View style={styles.header}>
@@ -147,62 +205,63 @@ export default function GameSessionScreen() {
               </ThemedText>
               <View style={[styles.statusPill, { backgroundColor: accentColor }]}>
                 <ThemedText style={styles.statusPillText}>
-                  {(gameState.status ?? 'waiting').toUpperCase()}
+                  {isWaitingForPlayers ? 'WAITING' : 'READY CHECK'}
                 </ThemedText>
               </View>
             </View>
 
             <View style={styles.card}>
               <ThemedText type="subtitle" style={styles.cardHeading}>
-                Players in this match
+                Players ({playerEntries.length}/2)
               </ThemedText>
-              {playerEntries.length === 0 ? (
-                <ThemedText style={styles.cardMessage}>No one has joined yet. Share the lobby with your friends!</ThemedText>
-              ) : (
-                playerEntries.map((player) => (
+              {isWaitingForPlayers ? (
+                <ThemedText style={styles.cardMessage}>Waiting for another player to join...</ThemedText>
+              ) : null}
+              {playerEntries.map((player) => {
+                const playerData = gameState?.players?.[player.id];
+                const isPlayerReady = playerData?.ready || false;
+                return (
                   <View key={player.id} style={styles.playerRow}>
-                    <View style={[styles.playerBadge, { backgroundColor: accentColor }]} />
+                    <View style={[styles.playerBadge, { backgroundColor: isPlayerReady ? '#27ae60' : accentColor }]} />
                     <ThemedText style={styles.playerName}>{player.displayName}</ThemedText>
+                    <ThemedText style={styles.readyStatus}>
+                      {isPlayerReady ? 'Ready' : 'Not Ready'}
+                    </ThemedText>
                   </View>
-                ))
-              )}
+                );
+              })}
             </View>
 
-            <View style={styles.card}>
-              <ThemedText type="subtitle" style={styles.cardHeading}>
-                Gameplay sync
-              </ThemedText>
-              <ThemedText style={styles.cardMessage}>
-                The current turn is set to <ThemedText type="defaultSemiBold">{currentPlayer.toUpperCase()}</ThemedText>. Update the
-                value below to synchronise moves across all connected devices.
-              </ThemedText>
-              <ThemedText style={styles.cardHint}>
-                Seats occupied: {(gameState.playerIds?.length ?? playerEntries.length)}/{gameState.maxPlayers ?? '—'}
-              </ThemedText>
-              <Pressable
-                accessibilityRole="button"
-                onPress={handleAdvanceTurn}
-                disabled={updatingTurn}
-                style={({ pressed }) => [
-                  styles.primaryButton,
-                  { backgroundColor: accentColor },
-                  (pressed || updatingTurn) && styles.primaryButtonPressed,
-                ]}>
-                <ThemedText type="defaultSemiBold" style={styles.primaryButtonText}>
-                  {updatingTurn ? 'Updating…' : 'Pass turn to opponent'}
+            {!isWaitingForPlayers && (
+              <View style={styles.card}>
+                <ThemedText type="subtitle" style={styles.cardHeading}>
+                  Ready to play?
                 </ThemedText>
-              </Pressable>
-            </View>
+                <ThemedText style={styles.cardMessage}>
+                  Both players must be ready to start the game.
+                </ThemedText>
+                <Pressable
+                  onPress={handleReady}
+                  style={({ pressed }) => [
+                    styles.primaryButton,
+                    { backgroundColor: isReady ? '#27ae60' : accentColor },
+                    pressed && styles.primaryButtonPressed,
+                  ]}>
+                  <ThemedText type="defaultSemiBold" style={styles.primaryButtonText}>
+                    {isReady ? 'Ready!' : 'Mark as Ready'}
+                  </ThemedText>
+                </Pressable>
+              </View>
+            )}
 
             <View style={styles.card}>
               <ThemedText type="subtitle" style={styles.cardHeading}>
                 Leave match
               </ThemedText>
               <ThemedText style={styles.cardMessage}>
-                Leaving removes you from the active roster so another player can take your seat in the lobby.
+                Leaving will delete the game if you're the only player.
               </ThemedText>
               <Pressable
-                accessibilityRole="button"
                 onPress={handleLeaveGame}
                 disabled={leaving}
                 style={({ pressed }) => [
@@ -227,8 +286,8 @@ const styles = StyleSheet.create({
   },
   container: {
     flex: 1,
-    paddingHorizontal: 24,
-    paddingTop: 32,
+    // paddingHorizontal: 24,
+    paddingTop: 12,
     paddingBottom: 32,
     gap: 24,
   },
@@ -299,6 +358,24 @@ const styles = StyleSheet.create({
   cardHint: {
     fontSize: 12,
     opacity: 0.7,
+  },
+  readyStatus: {
+    fontSize: 12,
+    fontWeight: '600',
+  },
+  countdownContainer: {
+    flex: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 16,
+  },
+  countdownText: {
+    fontSize: 72,
+    fontWeight: 'bold',
+  },
+  countdownLabel: {
+    fontSize: 18,
+    opacity: 0.8,
   },
   playerRow: {
     flexDirection: 'row',

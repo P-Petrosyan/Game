@@ -99,9 +99,9 @@ export default function HomeScreen() {
           <ThemedText type="title" style={styles.title}>
             Path Blocker
           </ThemedText>
-          <ThemedText style={styles.subtitle}>
-            Choose how you want to play and jump into the action.
-          </ThemedText>
+          {/*<ThemedText style={styles.subtitle}>*/}
+          {/*  Choose how you want to play and jump into the action.*/}
+          {/*</ThemedText>*/}
         </View>
         <View style={styles.authCard}>
           <ThemedText type="subtitle" style={styles.authHeading}>
@@ -110,7 +110,7 @@ export default function HomeScreen() {
           <ThemedText style={styles.authMessage}>
             {user
               ? 'Access your online lobby, create new rooms, and sync moves across devices.'
-              : 'Create an account or sign in to host online matches and keep progress in the cloud.'}
+              : 'Create an account or sign in to host online matches.'}
           </ThemedText>
           <View style={styles.authButtonsRow}>
             {user ? (
@@ -223,7 +223,7 @@ const styles = StyleSheet.create({
     gap: 16,
   },
   actionButton: {
-    borderRadius: 16,
+    borderRadius: 7,
     paddingHorizontal: 20,
     paddingVertical: 18,
     gap: 8,
@@ -245,9 +245,9 @@ const styles = StyleSheet.create({
     transform: [{ scale: 0.99 }],
   },
   authCard: {
-    borderRadius: 16,
-    paddingHorizontal: 20,
-    paddingVertical: 18,
+    borderRadius: 7,
+    paddingHorizontal: 16,
+    paddingVertical: 12,
     gap: 12,
     borderWidth: 1,
     borderColor: 'rgba(0,0,0,0.08)',
@@ -266,7 +266,8 @@ const styles = StyleSheet.create({
   authButton: {
     paddingHorizontal: 16,
     paddingVertical: 10,
-    borderRadius: 999,
+    backgroundColor: 'rgb(191,109,25)',
+    borderRadius: 7,
     borderWidth: 1,
     borderColor: 'rgba(0,0,0,0.1)',
   },
@@ -274,7 +275,7 @@ const styles = StyleSheet.create({
     opacity: 0.75,
   },
   itemsCard: {
-    borderRadius: 16,
+    borderRadius: 7,
     paddingHorizontal: 20,
     paddingVertical: 18,
     gap: 12,
@@ -295,7 +296,7 @@ const styles = StyleSheet.create({
   itemBadge: {
     width: 12,
     height: 12,
-    borderRadius: 6,
+    borderRadius: 7,
     marginTop: 6,
     backgroundColor: '#f39c12',
   },
