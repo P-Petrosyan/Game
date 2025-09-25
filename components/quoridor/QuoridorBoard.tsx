@@ -17,6 +17,7 @@ export type QuoridorBoardProps = {
   onWallPress: (wall: Wall) => void;
   onWallDrop?: (x: number, y: number, orientation: 'horizontal' | 'vertical') => void;
   boardRef?: React.RefObject<View>;
+  myPlayerSide?: PlayerId;
 };
 
 const PAWN_LABEL: Record<PlayerId, string> = {
@@ -35,6 +36,7 @@ export function QuoridorBoard({
                                 onWallPress,
                                 onWallDrop,
                                 boardRef,
+                                myPlayerSide = 'north',
                               }: QuoridorBoardProps) {
   const colorScheme = useColorScheme() ?? 'light';
   const { width } = useWindowDimensions();
@@ -86,9 +88,10 @@ export function QuoridorBoard({
         height: boardSize,
         backgroundColor: palette.board,
         borderColor: palette.grid,
+        ...(myPlayerSide === 'north' && { transform: [{ rotate: '180deg' }] }),
       },
     ],
-    [boardSize, palette.board, palette.grid],
+    [boardSize, palette.board, palette.grid, myPlayerSide],
   );
 
   const handleBoardLayout = (event: any) => {
@@ -161,14 +164,16 @@ export function QuoridorBoard({
                     backgroundColor: palette.pawn[occupant],
                     borderColor: isCurrentPlayer ? palette.currentOutline : palette.pawnOutline,
                     borderWidth: Math.max(2, cellSize * 0.08),
+                    ...(myPlayerSide === 'south' && { transform: [{ rotate: '360deg' }] }),
                   }}>
                   <ThemedText
                     type="defaultSemiBold"
                     style={{
-                      color: colorScheme === 'dark' ? '#1c130a' : '#fff',
+                      lineHeight: cellSize * 0.5,
+                      color: colorScheme === 'dark' ? '#ffffff' : '#fff',
                       fontSize: cellSize * 0.32,
                     }}>
-                    {/*{PAWN_LABEL[occupant]}*/}
+                    {PAWN_LABEL[occupant]}
                   </ThemedText>
                 </View>
               ) : null}

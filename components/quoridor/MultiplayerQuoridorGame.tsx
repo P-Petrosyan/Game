@@ -172,17 +172,12 @@ export function MultiplayerQuoridorGame({ gameId }: MultiplayerQuoridorGameProps
   useEffect(() => {
     // Redirect both players to new game when rematch is ready
     if (gameState?.newGameId && winner) {
-      console.log('gameId')
-      console.log(gameId)
-      console.log('gameState?.oldGameId')
-      console.log(gameState?.oldGameId)
       router.replace(`/online/game/${gameState.newGameId}?oldGameId=${gameId}`);
     }
   }, [gameState?.newGameId]);
 
   // Clean up old game if redirected from previous game
   useEffect(() => {
-    console.log('Deleting old game:', gameState?.oldGameId);
     if (!gameState?.oldGameId) return;
     const deleteGame = setTimeout(async () => {
       try {
@@ -361,6 +356,7 @@ export function MultiplayerQuoridorGame({ gameId }: MultiplayerQuoridorGameProps
             availableWalls={availableWalls}
             onCellPress={handleCellPress}
             onWallPress={handleWallPlacement}
+            myPlayerSide={myPlayerSide}
           />
         </View>
 
