@@ -1,6 +1,6 @@
 import { useRouter } from 'expo-router';
 import { useState } from 'react';
-import { ActivityIndicator, Pressable, StyleSheet, View } from 'react-native';
+import { ActivityIndicator, ScrollView, Pressable, StyleSheet, View, ImageBackground } from 'react-native';
 
 import { ThemedText } from '@/components/themed-text';
 import { ThemedView } from '@/components/themed-view';
@@ -43,7 +43,7 @@ type HomeActionButtonProps = {
 function HomeActionButton({ action, onPress, locked }: HomeActionButtonProps) {
   const colorScheme = useColorScheme() ?? 'light';
   const tintColor = Colors[colorScheme].tint;
-  const textColor = colorScheme === 'dark' ? Colors.dark.background : '#fff';
+  const textColor = Colors.dark.background;
 
   return (
     <Pressable
@@ -52,15 +52,15 @@ function HomeActionButton({ action, onPress, locked }: HomeActionButtonProps) {
       onPress={() => onPress(action)}
       style={({ pressed }) => [
         styles.actionButton,
-        { backgroundColor: tintColor },
+        { backgroundColor: Colors.light.buttonColor },
         pressed && styles.actionButtonPressed,
       ]}>
       <ThemedText type="subtitle" style={[styles.actionButtonTitle, { color: textColor }]}>
         {action.title}
       </ThemedText>
-      <ThemedText style={[styles.actionButtonDescription, { color: textColor }]}>
-        {action.description}
-      </ThemedText>
+      {/*<ThemedText style={[styles.actionButtonDescription, { color: textColor }]}>*/}
+      {/*  {action.description}*/}
+      {/*</ThemedText>*/}
       {locked ? (
         <ThemedText style={[styles.actionBadge, { color: textColor }]}>Sign in required</ThemedText>
       ) : null}
@@ -93,112 +93,131 @@ export default function HomeScreen() {
   };
 
   return (
-    <ThemedView style={styles.container}>
-      <View style={styles.content}>
-        <View style={styles.header}>
-          <ThemedText type="title" style={styles.title}>
-            Path Blocker
-          </ThemedText>
-          <ThemedText style={styles.subtitle}>
-            Choose how you want to play and jump into the action.
-          </ThemedText>
-        </View>
-        <View style={styles.authCard}>
-          <ThemedText type="subtitle" style={styles.authHeading}>
-            {initializing ? 'Checking session…' : user ? `Welcome, ${user.displayName ?? user.email}` : 'You are not signed in'}
-          </ThemedText>
-          <ThemedText style={styles.authMessage}>
-            {user
-              ? 'Access your online lobby, create new rooms, and sync moves across devices.'
-              : 'Create an account or sign in to host online matches and keep progress in the cloud.'}
-          </ThemedText>
-          <View style={styles.authButtonsRow}>
-            {user ? (
-              <Pressable
-                accessibilityRole="button"
-                onPress={handleSignOut}
-                disabled={signingOut}
-                style={({ pressed }) => [
-                  styles.authButton,
-                  pressed && styles.authButtonPressed,
-                ]}>
-                {signingOut ? (
-                  <ActivityIndicator />
-                ) : (
-                  <ThemedText type="defaultSemiBold">Sign out</ThemedText>
-                )}
-              </Pressable>
-            ) : (
-              <>
-                <Pressable
-                  accessibilityRole="button"
-                  onPress={() => router.push('/auth/login')}
-                  style={({ pressed }) => [
-                    styles.authButton,
-                    pressed && styles.authButtonPressed,
-                  ]}>
-                  <ThemedText type="defaultSemiBold">Sign in</ThemedText>
-                </Pressable>
-                <Pressable
-                  accessibilityRole="button"
-                  onPress={() => router.push('/auth/register')}
-                  style={({ pressed }) => [
-                    styles.authButton,
-                    pressed && styles.authButtonPressed,
-                  ]}>
-                  <ThemedText type="defaultSemiBold">Create account</ThemedText>
-                </Pressable>
-              </>
-            )}
-          </View>
-        </View>
-
-        <View style={styles.actions}>
-          {actions.map((action) => (
-            <HomeActionButton
-              key={action.key}
-              action={action}
-              onPress={handleAction}
-              locked={Boolean(action.requiresAuth && !user)}
-            />
-          ))}
-        </View>
-
-        <View style={styles.itemsCard}>
-          <ThemedText type="subtitle" style={styles.itemsHeading}>
-            Featured items
-          </ThemedText>
-          {itemsLoading ? (
-            <ActivityIndicator />
-          ) : itemsError ? (
-            <ThemedText style={styles.itemsMessage}>Unable to load items: {itemsError}</ThemedText>
-          ) : items.length === 0 ? (
-            <ThemedText style={styles.itemsMessage}>
-              Add items to your Firestore database to see them here.
+    <ImageBackground
+      source={require('@/assets/backgrounds/homeScreen.webp')}
+      style={styles.backgroundImage}
+      resizeMode="cover"
+    >
+      <ScrollView contentContainerStyle={styles.scrollContainer}>
+        <ThemedView style={[styles.container, styles.overlay]}>
+        <View style={styles.content}>
+          <View style={styles.header}>
+            <ThemedText type="title" style={styles.title}>
+              Path Blocker
             </ThemedText>
-          ) : (
-            items.slice(0, 3).map((item) => (
-              <View key={item.id} style={styles.itemRow}>
-                <View style={styles.itemBadge} />
-                <View style={styles.itemContent}>
-                  <ThemedText type="defaultSemiBold">{item.name}</ThemedText>
-                  {item.description ? (
-                    <ThemedText style={styles.itemDescription}>{item.description}</ThemedText>
-                  ) : null}
-                  {item.rarity ? (
-                    <ThemedText style={styles.itemRarity}>{item.rarity}</ThemedText>
-                  ) : null}
-                </View>
-              </View>
-            ))
-          )}
+            {/*<ThemedText style={styles.subtitle}>*/}
+            {/*  Choose how you want to play and jump into the action.*/}
+            {/*</ThemedText>*/}
+          </View>
+          <View style={styles.authCard}>
+            <ThemedText type="subtitle" style={styles.authHeading}>
+              {initializing ? 'Checking session…' : user ? `Welcome, ${user.displayName ?? user.email}` : 'You are not signed in'}
+            </ThemedText>
+            <ThemedText style={styles.authMessage}>
+              {user
+                ? 'Access your online lobby, create new rooms, and sync moves across devices.'
+                : 'Create an account or sign in to host online matches.'}
+            </ThemedText>
+            <View style={styles.authButtonsRow}>
+              {user ? (
+                <Pressable
+                  accessibilityRole="button"
+                  onPress={handleSignOut}
+                  disabled={signingOut}
+                  style={({ pressed }) => [
+                    styles.authButton,
+                    pressed && styles.authButtonPressed,
+                  ]}>
+                  {signingOut ? (
+                    <ActivityIndicator />
+                  ) : (
+                    <ThemedText type="defaultSemiBold">Sign out</ThemedText>
+                  )}
+                </Pressable>
+              ) : (
+                <>
+                  <Pressable
+                    accessibilityRole="button"
+                    onPress={() => router.push('/auth/login')}
+                    style={({ pressed }) => [
+                      styles.authButton,
+                      pressed && styles.authButtonPressed,
+                    ]}>
+                    <ThemedText type="defaultSemiBold">Sign in</ThemedText>
+                  </Pressable>
+                  <Pressable
+                    accessibilityRole="button"
+                    onPress={() => router.push('/auth/register')}
+                    style={({ pressed }) => [
+                      styles.authButton,
+                      pressed && styles.authButtonPressed,
+                    ]}>
+                    <ThemedText type="defaultSemiBold">Create account</ThemedText>
+                  </Pressable>
+                </>
+              )}
+            </View>
+          </View>
+
+          <View style={styles.actions}>
+            {actions.map((action) => (
+              <HomeActionButton
+                key={action.key}
+                action={action}
+                onPress={handleAction}
+                locked={Boolean(action.requiresAuth && !user)}
+              />
+            ))}
+          </View>
+
+          {/*<View style={styles.itemsCard}>*/}
+          {/*  <ThemedText type="subtitle" style={styles.itemsHeading}>*/}
+          {/*    Featured items*/}
+          {/*  </ThemedText>*/}
+          {/*  {itemsLoading ? (*/}
+          {/*    <ActivityIndicator />*/}
+          {/*  ) : itemsError ? (*/}
+          {/*    <ThemedText style={styles.itemsMessage}>Unable to load items: {itemsError}</ThemedText>*/}
+          {/*  ) : items.length === 0 ? (*/}
+          {/*    <ThemedText style={styles.itemsMessage}>*/}
+          {/*      Add items to your Firestore database to see them here.*/}
+          {/*    </ThemedText>*/}
+          {/*  ) : (*/}
+          {/*    items.slice(0, 3).map((item) => (*/}
+          {/*      <View key={item.id} style={styles.itemRow}>*/}
+          {/*        <View style={styles.itemBadge} />*/}
+          {/*        <View style={styles.itemContent}>*/}
+          {/*          <ThemedText type="defaultSemiBold">{item.name}</ThemedText>*/}
+          {/*          {item.description ? (*/}
+          {/*            <ThemedText style={styles.itemDescription}>{item.description}</ThemedText>*/}
+          {/*          ) : null}*/}
+          {/*          {item.rarity ? (*/}
+          {/*            <ThemedText style={styles.itemRarity}>{item.rarity}</ThemedText>*/}
+          {/*          ) : null}*/}
+          {/*        </View>*/}
+          {/*      </View>*/}
+          {/*    ))*/}
+          {/*  )}*/}
+          {/*</View>*/}
         </View>
-      </View>
-    </ThemedView>
+        </ThemedView>
+      </ScrollView>
+    </ImageBackground>
   );
 }
 
 const styles = StyleSheet.create({
+  backgroundImage: {
+    flex: 1,
+  },
+  overlay: {
+    backgroundColor: 'rgba(255,255,255,0.11)',
+  },
+  scrollContainer: {
+    paddingVertical: 4,
+    paddingHorizontal: 5,
+    paddingBottom: 32,
+  },
   container: {
     flex: 1,
   },
@@ -208,6 +227,7 @@ const styles = StyleSheet.create({
     paddingTop: 64,
     paddingBottom: 48,
     justifyContent: 'space-between',
+    gap: 32,
   },
   header: {
     gap: 16,
@@ -217,16 +237,15 @@ const styles = StyleSheet.create({
   },
   subtitle: {
     textAlign: 'center',
-    lineHeight: 22,
+    // lineHeight: 22,
   },
   actions: {
-    gap: 16,
+    gap: 12,
   },
   actionButton: {
-    borderRadius: 16,
-    paddingHorizontal: 20,
-    paddingVertical: 18,
-    gap: 8,
+    borderRadius: 7,
+    paddingHorizontal: 14,
+    paddingVertical: 10,
   },
   actionBadge: {
     marginTop: 8,
@@ -235,6 +254,8 @@ const styles = StyleSheet.create({
   },
   actionButtonTitle: {
     textAlign: 'left',
+    fontSize: 18,
+    lineHeight: 20,
   },
   actionButtonDescription: {
     fontSize: 14,
@@ -245,18 +266,20 @@ const styles = StyleSheet.create({
     transform: [{ scale: 0.99 }],
   },
   authCard: {
-    borderRadius: 16,
-    paddingHorizontal: 20,
-    paddingVertical: 18,
+    borderRadius: 7,
+    paddingHorizontal: 16,
+    paddingVertical: 12,
     gap: 12,
-    borderWidth: 1,
-    borderColor: 'rgba(0,0,0,0.08)',
+    backgroundColor: 'rgba(182,166,147,0.55)',
   },
   authHeading: {
     textAlign: 'left',
+    fontSize: 16,
   },
   authMessage: {
     lineHeight: 20,
+    fontSize: 14,
+    opacity: 0.9,
   },
   authButtonsRow: {
     flexDirection: 'row',
@@ -264,22 +287,19 @@ const styles = StyleSheet.create({
     flexWrap: 'wrap',
   },
   authButton: {
-    paddingHorizontal: 16,
+    paddingHorizontal: 14,
     paddingVertical: 10,
-    borderRadius: 999,
-    borderWidth: 1,
-    borderColor: 'rgba(0,0,0,0.1)',
+    backgroundColor: 'rgb(191,109,25)',
+    borderRadius: 7,
   },
   authButtonPressed: {
     opacity: 0.75,
   },
   itemsCard: {
-    borderRadius: 16,
+    borderRadius: 7,
     paddingHorizontal: 20,
     paddingVertical: 18,
     gap: 12,
-    borderWidth: 1,
-    borderColor: 'rgba(0,0,0,0.08)',
   },
   itemsHeading: {
     textAlign: 'left',
@@ -295,7 +315,7 @@ const styles = StyleSheet.create({
   itemBadge: {
     width: 12,
     height: 12,
-    borderRadius: 6,
+    borderRadius: 7,
     marginTop: 6,
     backgroundColor: '#f39c12',
   },

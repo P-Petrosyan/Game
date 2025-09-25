@@ -3,9 +3,20 @@ import { doc, onSnapshot, type DocumentData, type DocumentReference } from 'fire
 
 import { db } from '@/services/firebase';
 
+export type PlayerStats = {
+  score?: number;
+  items?: Record<string, number>;
+  gamesPlayed?: number;
+  level?: string;
+  points?: number;
+  wins?: number;
+};
+
 export type GamePlayer = {
   displayName?: string | null;
   joinedAt?: Date | null;
+  ready?: boolean;
+  stats?: Record<string, PlayerStats>;
 };
 
 export type GameState = {
@@ -13,10 +24,13 @@ export type GameState = {
   name: string;
   hostId?: string;
   hostName?: string | null;
-  status?: string;
+  status?: 'waiting' | 'active' | 'starting' | 'playing' | 'completed';
   maxPlayers?: number;
   playerIds?: string[];
   players?: Record<string, GamePlayer>;
+  playAgainVotes?: any;
+  newGameId?: string;
+  oldGameId?: string;
   state?: Record<string, unknown>;
 };
 

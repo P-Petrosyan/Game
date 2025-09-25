@@ -1,9 +1,10 @@
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { useEffect, useMemo, useState } from 'react';
-import { ActivityIndicator, Alert, Pressable, ScrollView, StyleSheet, View } from 'react-native';
+import { ActivityIndicator, Alert, Pressable, ScrollView, StyleSheet, View, ImageBackground } from 'react-native';
 
 import { ThemedText } from '@/components/themed-text';
 import { ThemedView } from '@/components/themed-view';
+import { MultiplayerQuoridorGame } from '@/components/quoridor/MultiplayerQuoridorGame';
 import { Colors } from '@/constants/theme';
 import { useAuth } from '@/context/AuthContext';
 import { useGameLobby } from '@/context/GameLobbyContext';
@@ -29,15 +30,43 @@ export default function GameSessionScreen() {
   const { user } = useAuth();
   const { leaveGame } = useGameLobby();
   const colorScheme = useColorScheme() ?? 'light';
-  const accentColor = Colors[colorScheme].tint;
-  const [updatingTurn, setUpdatingTurn] = useState(false);
+  const accentColor = Colors[colorScheme].background;
   const [leaving, setLeaving] = useState(false);
+  const [isReady, setIsReady] = useState(false);
+  const [countdown, setCountdown] = useState(0);
+
+  // useEffect(() => {
+  //   if (!gameId) {
+  //     router.replace('/online');
+  //   }
+  // }, [gameId, router]);
 
   useEffect(() => {
-    if (!gameId) {
-      router.replace('/online');
+    if (!gameState?.players || !user) return;
+    
+    const playerIds = Object.keys(gameState.players);
+    if (playerIds.length === 1 && playerIds[0] !== user.uid) {
+      // Game was abandoned, delete it
+      handleLeaveGame();
     }
-  }, [gameId, router]);
+  }, [gameState?.players, user]);
+
+  useEffect(() => {
+    if (gameState?.status === 'starting' && countdown === 0) {
+      setCountdown(3);
+      const timer = setInterval(() => {
+        setCountdown(prev => {
+          if (prev <= 1) {
+            clearInterval(timer);
+            updateGameStatus('playing');
+            return 0;
+          }
+          return prev - 1;
+        });
+      }, 1000);
+      return () => clearInterval(timer);
+    }
+  }, [gameState?.status]);
 
   const currentPlayer = useMemo(() => {
     const rawValue = (gameState?.state?.currentPlayer as string | undefined) ?? 'north';
@@ -58,31 +87,51 @@ export default function GameSessionScreen() {
     }));
   }, [gameState?.players]);
 
-  const handleAdvanceTurn = async () => {
-    if (!gameId || !gameState) {
-      return;
-    }
+  const isWaitingForPlayers = playerEntries.length < 2;
+  const bothPlayersReady = playerEntries.length === 2 && 
+    Object.values(gameState?.players || {}).every(p => p.ready);
+  const isGameStarted = gameState?.status === 'playing';
+  const isCountingDown = gameState?.status === 'starting' && countdown > 0;
 
-    if (!user) {
-      Alert.alert('Sign in required', 'You must be signed in to sync moves online.');
-      return;
-    }
-
-    setUpdatingTurn(true);
-
+  const handleReady = async () => {
+    if (!gameId || !user) return;
+    
     try {
-      const nextPlayer = currentPlayer === 'north' ? 'south' : 'north';
       const gameRef = doc(db, 'games', gameId);
-
       await updateDoc(gameRef, {
-        'state.currentPlayer': nextPlayer,
-        'state.lastUpdatedAt': serverTimestamp(),
+        [`players.${user.uid}.ready`]: !isReady,
+        updatedAt: serverTimestamp(),
       });
-    } catch (syncError) {
-      const message = syncError instanceof Error ? syncError.message : 'Unable to update the turn. Try again shortly.';
-      Alert.alert('Sync failed', message);
-    } finally {
-      setUpdatingTurn(false);
+      setIsReady(!isReady);
+      
+      // Check if both players are ready
+      const playerIds = Object.keys(gameState?.players || {});
+      if (playerIds.length === 2) {
+        const allReady = playerIds.every(id => 
+          gameState?.players?.[id]?.ready || (id === user.uid && !isReady)
+        );
+        if (allReady) {
+          await updateDoc(gameRef, {
+            status: 'starting',
+            updatedAt: serverTimestamp(),
+          });
+        }
+      }
+    } catch (error) {
+      Alert.alert('Error', 'Failed to update ready status');
+    }
+  };
+
+  const updateGameStatus = async (status: string) => {
+    if (!gameId) return;
+    try {
+      const gameRef = doc(db, 'games', gameId);
+      await updateDoc(gameRef, {
+        status,
+        updatedAt: serverTimestamp(),
+      });
+    } catch (error) {
+      console.error('Failed to update game status:', error);
     }
   };
 
@@ -113,8 +162,12 @@ export default function GameSessionScreen() {
   }
 
   return (
-    <ScrollView contentContainerStyle={styles.scrollContainer}>
-      <ThemedView style={styles.container}>
+    <ImageBackground
+      source={require('@/assets/backgrounds/gameReady.webp')}
+      style={styles.backgroundImage}
+      resizeMode="cover"
+    >
+      <ThemedView style={[styles.container, styles.overlay]}>
         {loading ? (
           <View style={styles.loadingState}>
             <ActivityIndicator />
@@ -125,16 +178,25 @@ export default function GameSessionScreen() {
               Unable to load the match
             </ThemedText>
             <ThemedText style={styles.errorMessage}>{error}</ThemedText>
-            <Pressable onPress={() => router.replace('/online')} style={({ pressed }) => [styles.backButton, pressed && styles.backButtonPressed]}>
+            <Pressable onPress={() => router.replace('/')} style={({ pressed }) => [styles.backButton, pressed && styles.backButtonPressed]}>
               <ThemedText type="defaultSemiBold">Back to lobby</ThemedText>
             </Pressable>
           </View>
         ) : !gameState ? (
           <View style={styles.errorState}>
-            <ThemedText type="subtitle">This match could not be found.</ThemedText>
-            <Pressable onPress={() => router.replace('/online')} style={({ pressed }) => [styles.backButton, pressed && styles.backButtonPressed]}>
+            <ThemedText type="subtitle">Opponent left the match.</ThemedText>
+            <Pressable onPress={() => router.replace('/')} style={({ pressed }) => [styles.backButton, pressed && styles.backButtonPressed]}>
               <ThemedText type="defaultSemiBold">Back to lobby</ThemedText>
             </Pressable>
+          </View>
+        ) : isGameStarted ? (
+          <MultiplayerQuoridorGame gameId={gameId} />
+        ) : isCountingDown ? (
+          <View style={styles.countdownContainer}>
+            <ThemedText type="title" style={styles.countdownText}>
+              {countdown}
+            </ThemedText>
+            <ThemedText style={styles.countdownLabel}>Game starting...</ThemedText>
           </View>
         ) : (
           <>
@@ -145,64 +207,65 @@ export default function GameSessionScreen() {
               <ThemedText style={styles.subtitle}>
                 Hosted by {gameState.hostName ?? 'Unknown host'}
               </ThemedText>
-              <View style={[styles.statusPill, { backgroundColor: accentColor }]}>
+              <View style={[styles.statusPill, { backgroundColor: '#444' }]}>
                 <ThemedText style={styles.statusPillText}>
-                  {(gameState.status ?? 'waiting').toUpperCase()}
+                  {isWaitingForPlayers ? 'WAITING' : 'READY CHECK'}
                 </ThemedText>
               </View>
             </View>
 
             <View style={styles.card}>
               <ThemedText type="subtitle" style={styles.cardHeading}>
-                Players in this match
+                Players ({playerEntries.length}/2)
               </ThemedText>
-              {playerEntries.length === 0 ? (
-                <ThemedText style={styles.cardMessage}>No one has joined yet. Share the lobby with your friends!</ThemedText>
-              ) : (
-                playerEntries.map((player) => (
+              {isWaitingForPlayers ? (
+                <ThemedText style={styles.cardMessage}>Waiting for another player to join...</ThemedText>
+              ) : null}
+              {playerEntries.map((player) => {
+                const playerData = gameState?.players?.[player.id];
+                const isPlayerReady = playerData?.ready || false;
+                return (
                   <View key={player.id} style={styles.playerRow}>
-                    <View style={[styles.playerBadge, { backgroundColor: accentColor }]} />
+                    <View style={[styles.playerBadge, { backgroundColor: isPlayerReady ? '#27ae60' : accentColor }]} />
                     <ThemedText style={styles.playerName}>{player.displayName}</ThemedText>
+                    <ThemedText style={styles.readyStatus}>
+                      {isPlayerReady ? 'Ready' : 'Not Ready'}
+                    </ThemedText>
                   </View>
-                ))
-              )}
+                );
+              })}
             </View>
 
-            <View style={styles.card}>
-              <ThemedText type="subtitle" style={styles.cardHeading}>
-                Gameplay sync
-              </ThemedText>
-              <ThemedText style={styles.cardMessage}>
-                The current turn is set to <ThemedText type="defaultSemiBold">{currentPlayer.toUpperCase()}</ThemedText>. Update the
-                value below to synchronise moves across all connected devices.
-              </ThemedText>
-              <ThemedText style={styles.cardHint}>
-                Seats occupied: {(gameState.playerIds?.length ?? playerEntries.length)}/{gameState.maxPlayers ?? '—'}
-              </ThemedText>
-              <Pressable
-                accessibilityRole="button"
-                onPress={handleAdvanceTurn}
-                disabled={updatingTurn}
-                style={({ pressed }) => [
-                  styles.primaryButton,
-                  { backgroundColor: accentColor },
-                  (pressed || updatingTurn) && styles.primaryButtonPressed,
-                ]}>
-                <ThemedText type="defaultSemiBold" style={styles.primaryButtonText}>
-                  {updatingTurn ? 'Updating…' : 'Pass turn to opponent'}
+            {!isWaitingForPlayers && (
+              <View style={styles.card}>
+                <ThemedText type="subtitle" style={styles.cardHeading}>
+                  Ready to play?
                 </ThemedText>
-              </Pressable>
-            </View>
+                <ThemedText style={styles.cardMessage}>
+                  Both players must be ready to start the game.
+                </ThemedText>
+                <Pressable
+                  onPress={handleReady}
+                  style={({ pressed }) => [
+                    styles.primaryButton,
+                    { backgroundColor: isReady ? 'rgba(39,174,96,0.4)' : accentColor },
+                    pressed && styles.primaryButtonPressed,
+                  ]}>
+                  <ThemedText type="defaultSemiBold" style={styles.primaryButtonText}>
+                    {isReady ? 'Ready!' : 'Mark as Ready'}
+                  </ThemedText>
+                </Pressable>
+              </View>
+            )}
 
             <View style={styles.card}>
               <ThemedText type="subtitle" style={styles.cardHeading}>
                 Leave match
               </ThemedText>
               <ThemedText style={styles.cardMessage}>
-                Leaving removes you from the active roster so another player can take your seat in the lobby.
+                Leaving will delete the game if you're the only player.
               </ThemedText>
               <Pressable
-                accessibilityRole="button"
                 onPress={handleLeaveGame}
                 disabled={leaving}
                 style={({ pressed }) => [
@@ -217,18 +280,23 @@ export default function GameSessionScreen() {
           </>
         )}
       </ThemedView>
-    </ScrollView>
+    </ImageBackground>
   );
 }
 
 const styles = StyleSheet.create({
-  scrollContainer: {
-    flexGrow: 1,
+  backgroundImage: {
+    flex: 1,
   },
+  overlay: {
+    backgroundColor: 'rgba(255,255,255,0.11)',
+  },
+  // scrollContainer: {
+  //   flexGrow: 1,
+  // },
   container: {
     flex: 1,
-    paddingHorizontal: 24,
-    paddingTop: 32,
+    paddingTop: 62,
     paddingBottom: 32,
     gap: 24,
   },
@@ -253,14 +321,17 @@ const styles = StyleSheet.create({
     paddingHorizontal: 16,
     paddingVertical: 10,
     borderRadius: 999,
-    borderWidth: 1,
-    borderColor: 'rgba(0,0,0,0.2)',
+    backgroundColor: Colors.dark.backgroundOpacity
   },
   backButtonPressed: {
     opacity: 0.7,
   },
   header: {
     alignItems: 'center',
+    backgroundColor: Colors.light.backgroundOpacity ,
+    paddingVertical: 16,
+    paddingHorizontal: 24,
+    borderRadius: 16,
     gap: 8,
   },
   title: {
@@ -283,11 +354,11 @@ const styles = StyleSheet.create({
     textAlign: 'center',
   },
   card: {
-    borderWidth: 1,
     borderRadius: 16,
     paddingHorizontal: 20,
     paddingVertical: 18,
     gap: 12,
+    backgroundColor: Colors.light.backgroundOpacity,
     borderColor: 'rgba(0,0,0,0.08)',
   },
   cardHeading: {
@@ -299,6 +370,25 @@ const styles = StyleSheet.create({
   cardHint: {
     fontSize: 12,
     opacity: 0.7,
+  },
+  readyStatus: {
+    fontSize: 12,
+    fontWeight: '600',
+  },
+  countdownContainer: {
+    flex: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 16,
+  },
+  countdownText: {
+    lineHeight: 60,
+    fontSize: 60,
+    fontWeight: 'bold',
+  },
+  countdownLabel: {
+    fontSize: 18,
+    opacity: 0.8,
   },
   playerRow: {
     flexDirection: 'row',
@@ -314,6 +404,7 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   primaryButton: {
+    backgroundColor: Colors.light.tint,
     paddingVertical: 12,
     borderRadius: 12,
     alignItems: 'center',

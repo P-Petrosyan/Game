@@ -2,6 +2,7 @@ import { useRouter } from 'expo-router';
 import { useState } from 'react';
 import {
   Alert,
+  ImageBackground,
   KeyboardAvoidingView,
   Platform,
   Pressable,
@@ -18,6 +19,7 @@ import { useColorScheme } from '@/hooks/use-color-scheme';
 
 export default function CreateGameScreen() {
   const [gameName, setGameName] = useState('');
+  const [gameCode, setGameCode] = useState('');
   const [submitting, setSubmitting] = useState(false);
   const router = useRouter();
   const { createGame } = useGameLobby();
@@ -37,19 +39,9 @@ export default function CreateGameScreen() {
     setSubmitting(true);
 
     try {
-      const newGame = await createGame(gameName);
+      const newGame = await createGame(gameName, gameCode);
       setGameName('');
-      Alert.alert('Game created', `"${newGame.name}" is now visible in the online lobby.`, [
-        {
-          text: 'View game',
-          onPress: () =>
-            router.replace({ pathname: '/online/game/[id]', params: { id: newGame.id } }),
-        },
-        {
-          text: 'Back to lobby',
-          onPress: () => router.replace('/online'),
-        },
-      ]);
+      router.replace({ pathname: '/online/game/[id]', params: { id: newGame.id } });
     } catch (error) {
       const message = error instanceof Error ? error.message : 'Please enter a valid name.';
       Alert.alert('Cannot create game', message);
@@ -59,7 +51,12 @@ export default function CreateGameScreen() {
   };
 
   return (
-    <ThemedView style={styles.flex}>
+    <ImageBackground
+      source={require('@/assets/backgrounds/onlineScreen.webp')}
+      style={styles.backgroundImage}
+      resizeMode="cover"
+    >
+      <ThemedView style={[styles.flex, styles.overlay]}>
       <KeyboardAvoidingView
         behavior={Platform.OS === 'ios' ? 'padding' : undefined}
         keyboardVerticalOffset={Platform.OS === 'ios' ? 100 : 0}
@@ -73,11 +70,21 @@ export default function CreateGameScreen() {
           </ThemedText>
         </View>
         <View style={styles.form}>
-          <ThemedText type="defaultSemiBold">Game name</ThemedText>
+          <ThemedText type="defaultSemiBold" style={styles.inputHeader}>Game name</ThemedText>
           <TextInput
             value={gameName}
             onChangeText={setGameName}
             placeholder="e.g. Saturday Showdown"
+            placeholderTextColor={placeholderColor}
+            style={[styles.input, { borderColor: accentColor, color: textColor }]}
+            returnKeyType="done"
+            onSubmitEditing={handleCreate}
+          />
+          <ThemedText type="defaultSemiBold" style={styles.inputHeader}>Private code (optional)</ThemedText>
+          <TextInput
+            value={gameCode}
+            onChangeText={setGameCode}
+            placeholder="Leave empty for public game"
             placeholderTextColor={placeholderColor}
             style={[styles.input, { borderColor: accentColor, color: textColor }]}
             returnKeyType="done"
@@ -89,21 +96,28 @@ export default function CreateGameScreen() {
             style={({ pressed }) => [
               styles.submitButton,
               {
-                backgroundColor: accentColor,
-                opacity: isDisabled ? 0.5 : pressed || submitting ? 0.85 : 1,
+                backgroundColor: Colors.light.buttonColor,
+                opacity: isDisabled ? 0.7 : pressed || submitting ? 0.85 : 1,
               },
             ]}>
-            <ThemedText type="defaultSemiBold" style={[styles.submitButtonText, { color: buttonTextColor }]}>
+            <ThemedText type="defaultSemiBold" style={[styles.submitButtonText, { color: Colors.dark.text }]}>
               {submitting ? 'Creating…' : 'Create game'}
             </ThemedText>
           </Pressable>
         </View>
       </KeyboardAvoidingView>
-    </ThemedView>
+      </ThemedView>
+    </ImageBackground>
   );
 }
 
 const styles = StyleSheet.create({
+  backgroundImage: {
+    flex: 1,
+  },
+  overlay: {
+    backgroundColor: 'rgba(255,255,255,0.11)',
+  },
   flex: {
     flex: 1,
   },
@@ -112,7 +126,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 24,
     paddingTop: 32,
     paddingBottom: 24,
-    justifyContent: 'space-between',
+    justifyContent: 'space-around',
   },
   header: {
     gap: 12,
@@ -124,19 +138,24 @@ const styles = StyleSheet.create({
     textAlign: 'center',
   },
   form: {
-    gap: 16,
+    gap: 10,
+  },
+  inputHeader: {
+    fontSize: 16,
+    color: Colors.light.text,
   },
   input: {
-    borderWidth: 1,
     borderRadius: 12,
     paddingHorizontal: 16,
     paddingVertical: Platform.select({ ios: 14, default: 12 }),
     fontSize: 16,
+    backgroundColor: Colors.light.backgroundOpacity,
   },
   submitButton: {
     borderRadius: 12,
     paddingVertical: 14,
     alignItems: 'center',
+    backgroundColor: Colors.light.buttonColor,
   },
   submitButtonText: {
     textAlign: 'center',

@@ -1,6 +1,6 @@
 import { useRouter } from 'expo-router';
 import { useState } from 'react';
-import { ActivityIndicator, Alert, FlatList, Pressable, StyleSheet, View } from 'react-native';
+import { ActivityIndicator, Alert, FlatList, Pressable, StyleSheet, TextInput, View, ImageBackground } from 'react-native';
 
 import { ThemedText } from '@/components/themed-text';
 import { ThemedView } from '@/components/themed-view';
@@ -13,11 +13,12 @@ type GameListItemProps = {
   players: number;
   maxPlayers: number;
   status?: string;
+  isPrivate?: boolean;
   onPress: () => void;
   disabled?: boolean;
 };
 
-function GameListItem({ name, players, maxPlayers, status, onPress, disabled }: GameListItemProps) {
+function GameListItem({ name, players, maxPlayers, status, isPrivate, onPress, disabled }: GameListItemProps) {
   const colorScheme = useColorScheme() ?? 'light';
   const borderColor = Colors[colorScheme].tint;
 
@@ -29,13 +30,15 @@ function GameListItem({ name, players, maxPlayers, status, onPress, disabled }: 
       disabled={disabled}
       style={({ pressed }) => [
         styles.gameCard,
-        { borderColor },
         pressed && styles.gameCardPressed,
         disabled && styles.gameCardDisabled,
       ]}>
-      <ThemedText type="subtitle" style={styles.gameTitle}>
-        {name}
-      </ThemedText>
+      <View style={styles.gameHeader}>
+        <ThemedText type="subtitle" style={styles.gameTitle}>
+          {name}
+        </ThemedText>
+        {isPrivate && <ThemedText style={styles.privateFlag}>🔒 Private</ThemedText>}
+      </View>
       <ThemedText style={styles.gamePlayers}>{players >= maxPlayers ? 'Full' : `${players}/${maxPlayers} players`}</ThemedText>
       {status ? <ThemedText style={styles.gameStatus}>{status}</ThemedText> : null}
     </Pressable>
@@ -49,9 +52,29 @@ export default function OnlineGamesScreen() {
   const accentColor = Colors[colorScheme].tint;
   const [joiningGameId, setJoiningGameId] = useState<string | null>(null);
 
-  const handleJoinGame = async (gameId: string) => {
-    setJoiningGameId(gameId);
+  const handleJoinGame = async (gameId: string, isPrivate?: boolean) => {
+    if (isPrivate) {
+      Alert.prompt(
+        'Private Game',
+        'Enter the game code:',
+        async (code) => {
+          if (!code) return;
+          setJoiningGameId(gameId);
+          try {
+            await joinGame(gameId, code);
+            router.push({ pathname: '/online/game/[id]', params: { id: gameId } });
+          } catch (error) {
+            const message = error instanceof Error ? error.message : 'Unable to join this game.';
+            Alert.alert('Join Game', message);
+          } finally {
+            setJoiningGameId(null);
+          }
+        }
+      );
+      return;
+    }
 
+    setJoiningGameId(gameId);
     try {
       await joinGame(gameId);
       router.push({ pathname: '/online/game/[id]', params: { id: gameId } });
@@ -64,7 +87,12 @@ export default function OnlineGamesScreen() {
   };
 
   return (
-    <ThemedView style={styles.container}>
+    <ImageBackground 
+      source={require('@/assets/backgrounds/onlineScreen.webp')}
+      style={styles.backgroundImage}
+      resizeMode="cover"
+    >
+      <ThemedView style={[styles.container, styles.overlay]}>
       <View style={styles.header}>
         <ThemedText type="title" style={styles.title}>
           Game Lobby
@@ -76,10 +104,10 @@ export default function OnlineGamesScreen() {
           onPress={() => router.push('/online/create')}
           style={({ pressed }) => [
             styles.createButton,
-            { borderColor: accentColor },
+            { backgroundColor: Colors.light.buttonColor },
             pressed && styles.createButtonPressed,
           ]}>
-          <ThemedText type="defaultSemiBold" style={[styles.createButtonText, { color: accentColor }]}>
+          <ThemedText type="defaultSemiBold" style={[styles.createButtonText, { color: Colors.light.text }]}>
             Create a new game
           </ThemedText>
         </Pressable>
@@ -99,7 +127,8 @@ export default function OnlineGamesScreen() {
               players={item.players}
               maxPlayers={item.maxPlayers}
               status={item.status}
-              onPress={() => handleJoinGame(item.id)}
+              isPrivate={item.isPrivate}
+              onPress={() => handleJoinGame(item.id, item.isPrivate)}
               disabled={item.players >= item.maxPlayers || joiningGameId === item.id}
             />
           )}
@@ -108,11 +137,18 @@ export default function OnlineGamesScreen() {
           }
         />
       )}
-    </ThemedView>
+      </ThemedView>
+    </ImageBackground>
   );
 }
 
 const styles = StyleSheet.create({
+  backgroundImage: {
+    flex: 1,
+  },
+  overlay: {
+    backgroundColor: 'rgba(255,255,255,0.21)',
+  },
   container: {
     flex: 1,
     paddingHorizontal: 24,
@@ -133,8 +169,7 @@ const styles = StyleSheet.create({
     alignSelf: 'center',
     paddingHorizontal: 20,
     paddingVertical: 12,
-    borderRadius: 999,
-    borderWidth: 1,
+    borderRadius: 14,
   },
   createButtonPressed: {
     opacity: 0.7,
@@ -155,11 +190,10 @@ const styles = StyleSheet.create({
     opacity: 0.6,
   },
   gameCard: {
-    borderWidth: 1,
-    borderRadius: 16,
+    backgroundColor: Colors.light.backgroundOpacity,
+    borderRadius: 14,
     paddingHorizontal: 18,
     paddingVertical: 16,
-    gap: 8,
   },
   gameCardPressed: {
     transform: [{ scale: 0.99 }],
@@ -167,8 +201,19 @@ const styles = StyleSheet.create({
   gameCardDisabled: {
     opacity: 0.6,
   },
+  gameHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+  },
   gameTitle: {
+    fontSize: 18,
     textAlign: 'left',
+    flex: 1,
+  },
+  privateFlag: {
+    fontSize: 12,
+    opacity: 0.7,
   },
   gamePlayers: {
     fontSize: 14,

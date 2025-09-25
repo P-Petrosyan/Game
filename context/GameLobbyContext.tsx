@@ -14,6 +14,7 @@ import {
   deleteField,
   doc,
   onSnapshot,
+  where,
   orderBy,
   query,
   runTransaction,
@@ -28,21 +29,25 @@ import { db } from '@/services/firebase';
 export type LobbyGame = {
   id: string;
   name: string;
+  code: string;
   players: number;
   maxPlayers: number;
-  status: 'waiting' | 'active' | 'completed';
+  status: 'waiting' | 'playing' | 'completed';
   hostId?: string;
   hostName?: string | null;
+  isPrivate?: boolean;
 };
 
 type FirestoreLobbyGame = {
   name: string;
+  code: string;
   maxPlayers: number;
   playerCount?: number;
   playerIds?: string[];
-  status?: 'waiting' | 'active' | 'completed';
+  status?: 'waiting' | 'playing' | 'completed';
   hostId?: string;
   hostName?: string | null;
+  isPrivate?: boolean;
   players?: Record<
     string,
     {
@@ -60,8 +65,8 @@ type FirestoreLobbyGame = {
 type GameLobbyContextValue = {
   games: LobbyGame[];
   loading: boolean;
-  createGame: (name: string, options?: { maxPlayers?: number }) => Promise<LobbyGame>;
-  joinGame: (gameId: string) => Promise<void>;
+  createGame: (name: string, code: string, options?: { maxPlayers?: number }) => Promise<LobbyGame>;
+  joinGame: (gameId: string, code?: string) => Promise<void>;
   leaveGame: (gameId: string) => Promise<void>;
 };
 
@@ -74,11 +79,13 @@ function mapSnapshotToLobbyGame(snapshot: QueryDocumentSnapshot<FirestoreLobbyGa
   return {
     id: snapshot.id,
     name: data.name,
+    code: data.code,
     maxPlayers: data.maxPlayers,
     players,
     status: data.status ?? 'waiting',
     hostId: data.hostId,
     hostName: data.hostName,
+    isPrivate: data.isPrivate ?? false,
   };
 }
 
@@ -109,7 +116,7 @@ export function GameLobbyProvider({ children }: { children: ReactNode }) {
   }, []);
 
   const createGame = useCallback(
-    async (name: string, options?: { maxPlayers?: number }) => {
+    async (name: string, code: string, options?: { maxPlayers?: number }) => {
       const trimmedName = name.trim();
 
       if (!trimmedName) {
@@ -123,14 +130,17 @@ export function GameLobbyProvider({ children }: { children: ReactNode }) {
       const maxPlayers = options?.maxPlayers ?? 2;
       const displayName = user.displayName ?? user.email ?? 'Host';
 
+      const isPrivate = code.trim().length > 0;
       const newGame = {
         name: trimmedName,
+        code: code,
         maxPlayers,
         playerIds: [user.uid],
         playerCount: 1,
         status: 'waiting' as const,
         hostId: user.uid,
         hostName: displayName,
+        isPrivate,
         players: {
           [user.uid]: {
             displayName,
@@ -141,6 +151,16 @@ export function GameLobbyProvider({ children }: { children: ReactNode }) {
         updatedAt: serverTimestamp(),
         state: {
           currentPlayer: 'north',
+          positions: {
+            north: { row: 0, col: 4 },
+            south: { row: 8, col: 4 },
+          },
+          walls: [],
+          wallsRemaining: {
+            north: 10,
+            south: 10,
+          },
+          winner: null,
           lastUpdatedAt: serverTimestamp(),
         },
       };
@@ -150,18 +170,20 @@ export function GameLobbyProvider({ children }: { children: ReactNode }) {
       return {
         id: docRef.id,
         name: trimmedName,
+        code: code,
         maxPlayers,
         players: 1,
         status: 'waiting',
         hostId: user.uid,
         hostName: displayName,
+        isPrivate,
       } satisfies LobbyGame;
     },
     [user],
   );
 
   const joinGame = useCallback(
-    async (gameId: string) => {
+    async (gameId: string, code?: string) => {
       if (!user) {
         throw new Error('You must be signed in to join a game.');
       }
@@ -181,6 +203,10 @@ export function GameLobbyProvider({ children }: { children: ReactNode }) {
 
         if (playerIds.includes(user.uid)) {
           return;
+        }
+
+        if (data.isPrivate && data.code !== code) {
+          throw new Error('Invalid game code.');
         }
 
         if (currentCount >= data.maxPlayers) {
@@ -228,8 +254,33 @@ export function GameLobbyProvider({ children }: { children: ReactNode }) {
         }
 
         const nextIds = playerIds.filter((id) => id !== user.uid);
-        const currentCount = data.playerCount ?? playerIds.length;
-        const nextCount = Math.max(0, currentCount - 1);
+        const nextCount = Math.max(0, nextIds.length);
+
+        // Delete game if no players left
+        if (nextCount === 0) {
+          transaction.delete(gameRef);
+          return;
+        }
+
+        // If game is in progress and player leaves, opponent wins
+        if (data.status === 'playing' && nextCount === 1) {
+          const remainingPlayerId = nextIds[0];
+          const leavingPlayerIndex = playerIds.indexOf(user.uid);
+          const remainingPlayerIndex = playerIds.indexOf(remainingPlayerId);
+          const remainingPlayerSide = remainingPlayerIndex === 0 ? 'north' : 'south';
+
+          transaction.update(gameRef, {
+            playerIds: nextIds,
+            playerCount: nextCount,
+            status: 'completed',
+            'state.winner': remainingPlayerSide,
+            'state.gameEndReason': 'opponent_left',
+            updatedAt: serverTimestamp(),
+            [`players.${user.uid}`]: deleteField(),
+          });
+          return;
+        }
+
         const nextStatus = nextCount <= 1 ? 'waiting' : data.status ?? 'active';
 
         transaction.update(gameRef, {

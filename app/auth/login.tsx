@@ -21,7 +21,7 @@ export default function LoginScreen() {
   const [password, setPassword] = useState('');
   const [submitting, setSubmitting] = useState(false);
   const router = useRouter();
-  const { login } = useAuth();
+  const { login, loginWithGoogle } = useAuth();
   const colorScheme = useColorScheme() ?? 'light';
   const accentColor = Colors[colorScheme].tint;
   const textColor = Colors[colorScheme].text;
@@ -107,6 +107,28 @@ export default function LoginScreen() {
               {submitting ? 'Signing in…' : 'Sign in'}
             </ThemedText>
           </Pressable>
+          <View style={styles.divider}>
+            <View style={[styles.dividerLine, { backgroundColor: textColor }]} />
+            <ThemedText style={styles.dividerText}>or</ThemedText>
+            <View style={[styles.dividerLine, { backgroundColor: textColor }]} />
+          </View>
+          <Pressable
+            onPress={async () => {
+              try {
+                await loginWithGoogle();
+                router.replace('/');
+              } catch (error) {
+                Alert.alert('Google Sign-in failed', 'Please try again.');
+              }
+            }}
+            style={({ pressed }) => [
+              styles.googleButton,
+              { borderColor: accentColor, opacity: pressed ? 0.85 : 1 },
+            ]}>
+            <ThemedText type="defaultSemiBold" style={[styles.googleButtonText, { color: textColor }]}>
+              Continue with Google
+            </ThemedText>
+          </Pressable>
         </View>
         <View style={styles.footer}>
           <ThemedText>Need an account? </ThemedText>
@@ -155,6 +177,28 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   submitButtonText: {
+    textAlign: 'center',
+  },
+  divider: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+  },
+  dividerLine: {
+    flex: 1,
+    height: 1,
+    opacity: 0.3,
+  },
+  dividerText: {
+    opacity: 0.6,
+  },
+  googleButton: {
+    borderWidth: 1,
+    borderRadius: 12,
+    paddingVertical: 14,
+    alignItems: 'center',
+  },
+  googleButtonText: {
     textAlign: 'center',
   },
   footer: {
