@@ -1,12 +1,11 @@
 import { useRouter } from 'expo-router';
 import { useState } from 'react';
-import { ActivityIndicator, Alert, FlatList, Pressable, StyleSheet, TextInput, View, ImageBackground } from 'react-native';
+import { ActivityIndicator, Alert, FlatList, Pressable, StyleSheet, View, ImageBackground } from 'react-native';
 
 import { ThemedText } from '@/components/themed-text';
 import { ThemedView } from '@/components/themed-view';
 import { Colors } from '@/constants/theme';
 import { useGameLobby } from '@/context/GameLobbyContext';
-import { useColorScheme } from '@/hooks/use-color-scheme';
 
 type GameListItemProps = {
   name: string;
@@ -19,9 +18,6 @@ type GameListItemProps = {
 };
 
 function GameListItem({ name, players, maxPlayers, status, isPrivate, onPress, disabled }: GameListItemProps) {
-  const colorScheme = useColorScheme() ?? 'light';
-  const borderColor = Colors[colorScheme].tint;
-
   return (
     <Pressable
       onPress={onPress}
@@ -48,8 +44,6 @@ function GameListItem({ name, players, maxPlayers, status, isPrivate, onPress, d
 export default function OnlineGamesScreen() {
   const { games, loading, joinGame } = useGameLobby();
   const router = useRouter();
-  const colorScheme = useColorScheme() ?? 'light';
-  const accentColor = Colors[colorScheme].tint;
   const [joiningGameId, setJoiningGameId] = useState<string | null>(null);
 
   const handleJoinGame = async (gameId: string, isPrivate?: boolean) => {
@@ -104,10 +98,9 @@ export default function OnlineGamesScreen() {
           onPress={() => router.push('/online/create')}
           style={({ pressed }) => [
             styles.createButton,
-            { backgroundColor: Colors.light.buttonColor },
             pressed && styles.createButtonPressed,
           ]}>
-          <ThemedText type="defaultSemiBold" style={[styles.createButtonText, { color: Colors.light.text }]}>
+          <ThemedText type="defaultSemiBold" style={styles.createButtonText}>
             Create a new game
           </ThemedText>
         </Pressable>
@@ -147,7 +140,7 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   overlay: {
-    backgroundColor: 'rgba(255,255,255,0.07)',
+    backgroundColor: Colors.overlay,
   },
   container: {
     flex: 1,
@@ -158,24 +151,44 @@ const styles = StyleSheet.create({
   },
   header: {
     gap: 12,
+    backgroundColor: Colors.surface,
+    paddingHorizontal: 20,
+    paddingVertical: 18,
+    borderRadius: 18,
+    borderWidth: 1,
+    borderColor: Colors.outline,
+    shadowColor: Colors.translucentDark,
+    shadowOpacity: 0.12,
+    shadowOffset: { width: 0, height: 6 },
+    shadowRadius: 16,
+    elevation: 3,
   },
   title: {
     textAlign: 'center',
+    color: Colors.heading,
   },
   description: {
     textAlign: 'center',
+    color: Colors.textMuted,
   },
   createButton: {
     alignSelf: 'center',
     paddingHorizontal: 20,
     paddingVertical: 12,
-    borderRadius: 14,
+    borderRadius: 999,
+    backgroundColor: Colors.accent,
+    shadowColor: Colors.translucentDark,
+    shadowOpacity: 0.18,
+    shadowOffset: { width: 0, height: 4 },
+    shadowRadius: 12,
+    elevation: 2,
   },
   createButtonPressed: {
-    opacity: 0.7,
+    opacity: 0.85,
   },
   createButtonText: {
     textAlign: 'center',
+    color: Colors.buttonText,
   },
   listContent: {
     gap: 16,
@@ -187,16 +200,24 @@ const styles = StyleSheet.create({
   },
   emptyText: {
     textAlign: 'center',
-    opacity: 0.6,
+    color: Colors.textMuted,
   },
   gameCard: {
-    backgroundColor: Colors.light.backgroundOpacity,
-    borderRadius: 14,
-    paddingHorizontal: 18,
-    paddingVertical: 16,
+    backgroundColor: Colors.surface,
+    borderRadius: 16,
+    paddingHorizontal: 20,
+    paddingVertical: 18,
+    borderWidth: 1,
+    borderColor: Colors.outline,
+    shadowColor: Colors.translucentDark,
+    shadowOpacity: 0.1,
+    shadowOffset: { width: 0, height: 4 },
+    shadowRadius: 10,
+    elevation: 2,
   },
   gameCardPressed: {
-    transform: [{ scale: 0.99 }],
+    transform: [{ scale: 0.98 }],
+    shadowOpacity: 0.05,
   },
   gameCardDisabled: {
     opacity: 0.6,
@@ -210,18 +231,20 @@ const styles = StyleSheet.create({
     fontSize: 18,
     textAlign: 'left',
     flex: 1,
+    color: Colors.heading,
   },
   privateFlag: {
     fontSize: 12,
-    opacity: 0.7,
+    color: Colors.info,
   },
   gamePlayers: {
     fontSize: 14,
-    opacity: 0.7,
+    color: Colors.textMuted,
   },
   gameStatus: {
     fontSize: 12,
-    opacity: 0.7,
+    opacity: 0.85,
+    color: Colors.textMuted,
     textTransform: 'capitalize',
   },
   loadingState: {

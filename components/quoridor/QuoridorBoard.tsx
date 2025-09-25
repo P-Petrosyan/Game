@@ -2,7 +2,7 @@ import React, { useMemo } from 'react';
 import { Pressable, StyleSheet, View, useWindowDimensions } from 'react-native';
 
 import { ThemedText } from '@/components/themed-text';
-import { useColorScheme } from '@/hooks/use-color-scheme';
+import { Colors } from '@/constants/theme';
 
 import { BOARD_SIZE, PlayerId, Position, Wall, positionKey } from './game-logic';
 
@@ -38,45 +38,27 @@ export function QuoridorBoard({
                                 boardRef,
                                 myPlayerSide = 'north',
                               }: QuoridorBoardProps) {
-  const colorScheme = useColorScheme() ?? 'light';
   const { width } = useWindowDimensions();
   const boardSize = Math.min(width - 12, 420);
   const wallThickness = Math.max(4, boardSize * 0.033);
   const cellSize = (boardSize - wallThickness * (BOARD_SIZE - 1) - 8) / BOARD_SIZE;
 
   const palette = useMemo(() => {
-    // if (colorScheme === 'dark') {
-    //   return {
-    //     board: '#1f1b16',
-    //     cell: '#3a3128',
-    //     grid: '#7a5b3f',
-    //     wall: '#a8672d',
-    //     pawn: {
-    //       north: '#9fc5ff',
-    //       south: '#f39c96',
-    //     },
-    //     pawnOutline: '#ffffff',
-    //     currentOutline: '#f1c40f',
-    //     move: 'rgba(46, 204, 113, 0.75)',
-    //     wallHint: 'rgba(241, 196, 15, 0.35)',
-    //   } as const;
-    // }
-
     return {
-      board: '#f5ede1',
-      cell: '#fdf6e3',
-      grid: '#c8a46d',
-      wall: '#a8672d',
+      board: Colors.board.background,
+      cell: Colors.board.cell,
+      grid: Colors.board.grid,
+      wall: Colors.board.wall,
       pawn: {
-        north: '#2c3e50',
-        south: '#c0392b',
+        north: Colors.board.pawnNorth,
+        south: Colors.board.pawnSouth,
       },
-      pawnOutline: '#ffffff',
-      currentOutline: '#f39c12',
-      move: 'rgba(26, 188, 156, 0.75)',
-      wallHint: 'rgba(243, 156, 18, 0.3)',
+      pawnOutline: Colors.board.pawnOutline,
+      currentOutline: Colors.board.currentOutline,
+      move: Colors.board.move,
+      wallHint: Colors.board.wallHint,
     } as const;
-  }, [colorScheme]);
+  }, []);
 
   const validMoveKeys = useMemo(() => new Set(validMoves.map((move) => positionKey(move))), [validMoves]);
 
@@ -170,7 +152,7 @@ export function QuoridorBoard({
                     type="defaultSemiBold"
                     style={{
                       lineHeight: cellSize * 0.5,
-                      color: colorScheme === 'dark' ? '#ffffff' : '#fff',
+                      color: Colors.board.pawnOutline,
                       fontSize: cellSize * 0.32,
                     }}>
                     {PAWN_LABEL[occupant]}

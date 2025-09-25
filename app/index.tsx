@@ -6,8 +6,6 @@ import { ThemedText } from '@/components/themed-text';
 import { ThemedView } from '@/components/themed-view';
 import { Colors } from '@/constants/theme';
 import { useAuth } from '@/context/AuthContext';
-import { useItems } from '@/hooks/use-items';
-import { useColorScheme } from '@/hooks/use-color-scheme';
 
 const actions = [
   {
@@ -41,10 +39,6 @@ type HomeActionButtonProps = {
 };
 
 function HomeActionButton({ action, onPress, locked }: HomeActionButtonProps) {
-  const colorScheme = useColorScheme() ?? 'light';
-  const tintColor = Colors[colorScheme].tint;
-  const textColor = Colors.dark.background;
-
   return (
     <Pressable
       accessibilityRole="button"
@@ -52,17 +46,16 @@ function HomeActionButton({ action, onPress, locked }: HomeActionButtonProps) {
       onPress={() => onPress(action)}
       style={({ pressed }) => [
         styles.actionButton,
-        { backgroundColor: Colors.light.buttonColor },
         pressed && styles.actionButtonPressed,
       ]}>
-      <ThemedText type="subtitle" style={[styles.actionButtonTitle, { color: textColor }]}>
+      <ThemedText type="subtitle" style={styles.actionButtonTitle}>
         {action.title}
       </ThemedText>
       {/*<ThemedText style={[styles.actionButtonDescription, { color: textColor }]}>*/}
       {/*  {action.description}*/}
       {/*</ThemedText>*/}
       {locked ? (
-        <ThemedText style={[styles.actionBadge, { color: textColor }]}>Sign in required</ThemedText>
+        <ThemedText style={styles.actionBadge}>Sign in required</ThemedText>
       ) : null}
     </Pressable>
   );
@@ -71,7 +64,6 @@ function HomeActionButton({ action, onPress, locked }: HomeActionButtonProps) {
 export default function HomeScreen() {
   const router = useRouter();
   const { user, logout, initializing } = useAuth();
-  const { items, loading: itemsLoading, error: itemsError } = useItems();
   const [signingOut, setSigningOut] = useState(false);
 
   const handleAction = (action: Action) => {
@@ -131,7 +123,9 @@ export default function HomeScreen() {
                   {signingOut ? (
                     <ActivityIndicator />
                   ) : (
-                    <ThemedText type="defaultSemiBold">Sign out</ThemedText>
+                    <ThemedText type="defaultSemiBold" style={styles.authButtonText}>
+                      Sign out
+                    </ThemedText>
                   )}
                 </Pressable>
               ) : (
@@ -143,7 +137,9 @@ export default function HomeScreen() {
                       styles.authButton,
                       pressed && styles.authButtonPressed,
                     ]}>
-                    <ThemedText type="defaultSemiBold">Sign in</ThemedText>
+                    <ThemedText type="defaultSemiBold" style={styles.authButtonText}>
+                      Sign in
+                    </ThemedText>
                   </Pressable>
                   <Pressable
                     accessibilityRole="button"
@@ -152,7 +148,9 @@ export default function HomeScreen() {
                       styles.authButton,
                       pressed && styles.authButtonPressed,
                     ]}>
-                    <ThemedText type="defaultSemiBold">Create account</ThemedText>
+                    <ThemedText type="defaultSemiBold" style={styles.authButtonText}>
+                      Create account
+                    </ThemedText>
                   </Pressable>
                 </>
               )}
@@ -211,7 +209,7 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   overlay: {
-    backgroundColor: 'rgba(255,255,255,0)',
+    backgroundColor: Colors.overlay,
   },
   scrollContainer: {
     paddingVertical: 4,
@@ -234,28 +232,40 @@ const styles = StyleSheet.create({
   },
   title: {
     textAlign: 'center',
+    color: Colors.heading,
   },
   subtitle: {
     textAlign: 'center',
     // lineHeight: 22,
+    color: Colors.textMuted,
   },
   actions: {
     gap: 12,
   },
   actionButton: {
-    borderRadius: 7,
-    paddingHorizontal: 14,
-    paddingVertical: 10,
+    borderRadius: 12,
+    paddingHorizontal: 16,
+    paddingVertical: 14,
+    backgroundColor: Colors.surface,
+    borderWidth: 1,
+    borderColor: Colors.outline,
+    shadowColor: Colors.translucentDark,
+    shadowOpacity: 0.16,
+    shadowOffset: { width: 0, height: 4 },
+    shadowRadius: 12,
+    elevation: 2,
   },
   actionBadge: {
     marginTop: 8,
     fontSize: 14,
-    opacity: 0.8,
+    opacity: 0.9,
+    color: Colors.danger,
   },
   actionButtonTitle: {
     textAlign: 'left',
     fontSize: 18,
     lineHeight: 20,
+    color: Colors.heading,
   },
   actionButtonDescription: {
     fontSize: 14,
@@ -263,23 +273,32 @@ const styles = StyleSheet.create({
     opacity: 0.9,
   },
   actionButtonPressed: {
-    transform: [{ scale: 0.99 }],
+    transform: [{ scale: 0.98 }],
+    shadowOpacity: 0.05,
   },
   authCard: {
-    borderRadius: 7,
-    paddingHorizontal: 16,
-    paddingVertical: 12,
+    borderRadius: 16,
+    paddingHorizontal: 20,
+    paddingVertical: 18,
     gap: 12,
-    backgroundColor: 'rgba(182,166,147,0.55)',
+    backgroundColor: Colors.surface,
+    borderWidth: 1,
+    borderColor: Colors.outline,
+    shadowColor: Colors.translucentDark,
+    shadowOpacity: 0.12,
+    shadowOffset: { width: 0, height: 6 },
+    shadowRadius: 16,
+    elevation: 3,
   },
   authHeading: {
     textAlign: 'left',
     fontSize: 16,
+    color: Colors.heading,
   },
   authMessage: {
     lineHeight: 20,
     fontSize: 14,
-    opacity: 0.9,
+    color: Colors.textMuted,
   },
   authButtonsRow: {
     flexDirection: 'row',
@@ -287,13 +306,21 @@ const styles = StyleSheet.create({
     flexWrap: 'wrap',
   },
   authButton: {
-    paddingHorizontal: 14,
-    paddingVertical: 10,
-    backgroundColor: 'rgb(191,109,25)',
-    borderRadius: 7,
+    paddingHorizontal: 18,
+    paddingVertical: 12,
+    backgroundColor: Colors.accent,
+    borderRadius: 999,
+    shadowColor: Colors.translucentDark,
+    shadowOpacity: 0.18,
+    shadowOffset: { width: 0, height: 4 },
+    shadowRadius: 12,
+    elevation: 2,
+  },
+  authButtonText: {
+    color: Colors.buttonText,
   },
   authButtonPressed: {
-    opacity: 0.75,
+    opacity: 0.85,
   },
   itemsCard: {
     borderRadius: 7,

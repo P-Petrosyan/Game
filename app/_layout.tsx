@@ -1,4 +1,4 @@
-import { DarkTheme, DefaultTheme, ThemeProvider } from '@react-navigation/native';
+import { DefaultTheme, ThemeProvider } from '@react-navigation/native';
 import { Stack, useRouter } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
 import { Pressable } from 'react-native';
@@ -7,7 +7,7 @@ import 'react-native-reanimated';
 
 import { AuthProvider } from '@/context/AuthContext';
 import { GameLobbyProvider } from '@/context/GameLobbyContext';
-import { useColorScheme } from '@/hooks/use-color-scheme';
+import { Colors } from '@/constants/theme';
 
 export const unstable_settings = {
   initialRouteName: 'index',
@@ -17,18 +17,28 @@ function LobbyButton() {
   const router = useRouter();
   return (
     <Pressable onPress={() => router.push('/')} style={{ marginLeft: 16 }}>
-      <Ionicons name="home" size={24} color="#007AFF" />
+      <Ionicons name="home" size={24} color={Colors.accent} />
     </Pressable>
   );
 }
 
 export default function RootLayout() {
-  const colorScheme = useColorScheme();
+  const navigationTheme = {
+    ...DefaultTheme,
+    colors: {
+      ...DefaultTheme.colors,
+      primary: Colors.accent,
+      background: '#00000000',
+      text: Colors.text,
+      border: Colors.outline,
+      card: Colors.surface,
+    },
+  };
 
   return (
     <AuthProvider>
       <GameLobbyProvider>
-        <ThemeProvider value={colorScheme === 'dark' ? DarkTheme : DefaultTheme}>
+        <ThemeProvider value={navigationTheme}>
           <Stack initialRouteName="index">
             <Stack.Screen name="index" options={{ headerShown: false }} />
             <Stack.Screen name="local-play" options={{ title: 'Local Play' }} />

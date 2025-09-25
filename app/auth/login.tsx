@@ -14,7 +14,6 @@ import { ThemedText } from '@/components/themed-text';
 import { ThemedView } from '@/components/themed-view';
 import { Colors } from '@/constants/theme';
 import { useAuth } from '@/context/AuthContext';
-import { useColorScheme } from '@/hooks/use-color-scheme';
 
 export default function LoginScreen() {
   const [email, setEmail] = useState('');
@@ -22,11 +21,10 @@ export default function LoginScreen() {
   const [submitting, setSubmitting] = useState(false);
   const router = useRouter();
   const { login, loginWithGoogle } = useAuth();
-  const colorScheme = useColorScheme() ?? 'light';
-  const accentColor = Colors[colorScheme].tint;
-  const textColor = Colors[colorScheme].text;
-  const buttonTextColor = colorScheme === 'dark' ? Colors.dark.background : '#fff';
-  const placeholderColor = colorScheme === 'dark' ? '#9BA1A6' : '#6B7280';
+  const accentColor = Colors.accent;
+  const textColor = Colors.text;
+  const buttonTextColor = Colors.buttonText;
+  const placeholderColor = 'rgba(45, 27, 16, 0.45)';
 
   const isDisabled = email.trim().length === 0 || password.trim().length === 0;
 
@@ -54,15 +52,16 @@ export default function LoginScreen() {
         behavior={Platform.OS === 'ios' ? 'padding' : undefined}
         keyboardVerticalOffset={Platform.OS === 'ios' ? 100 : 0}
         style={styles.container}>
-        <View style={styles.header}>
-          <ThemedText type="title" style={styles.title}>
-            Welcome back
-          </ThemedText>
-          <ThemedText style={styles.subtitle}>
-            Sign in to access online lobbies, cloud saves, and synced matches.
-          </ThemedText>
-        </View>
-        <View style={styles.form}>
+        <View style={styles.panel}>
+          <View style={styles.header}>
+            <ThemedText type="title" style={styles.title}>
+              Welcome back
+            </ThemedText>
+            <ThemedText style={styles.subtitle}>
+              Sign in to access online lobbies, cloud saves, and synced matches.
+            </ThemedText>
+          </View>
+          <View style={styles.form}>
           <ThemedText type="defaultSemiBold">Email address</ThemedText>
           <TextInput
             value={email}
@@ -117,7 +116,7 @@ export default function LoginScreen() {
               try {
                 await loginWithGoogle();
                 router.replace('/');
-              } catch (error) {
+              } catch {
                 Alert.alert('Google Sign-in failed', 'Please try again.');
               }
             }}
@@ -129,6 +128,7 @@ export default function LoginScreen() {
               Continue with Google
             </ThemedText>
           </Pressable>
+          </View>
         </View>
         <View style={styles.footer}>
           <ThemedText>Need an account? </ThemedText>
@@ -152,14 +152,30 @@ const styles = StyleSheet.create({
     paddingBottom: 24,
     justifyContent: 'space-between',
   },
+  panel: {
+    gap: 24,
+    borderRadius: 20,
+    padding: 20,
+    backgroundColor: Colors.surface,
+    borderWidth: 1,
+    borderColor: Colors.outline,
+    shadowColor: Colors.translucentDark,
+    shadowOpacity: 0.12,
+    shadowOffset: { width: 0, height: 6 },
+    shadowRadius: 16,
+    elevation: 3,
+  },
   header: {
     gap: 12,
+    alignItems: 'center',
   },
   title: {
     textAlign: 'center',
+    color: Colors.heading,
   },
   subtitle: {
     textAlign: 'center',
+    color: Colors.textMuted,
   },
   form: {
     gap: 16,
@@ -170,11 +186,17 @@ const styles = StyleSheet.create({
     paddingHorizontal: 16,
     paddingVertical: Platform.select({ ios: 14, default: 12 }),
     fontSize: 16,
+    backgroundColor: Colors.backgroundStrong,
   },
   submitButton: {
     borderRadius: 12,
     paddingVertical: 14,
     alignItems: 'center',
+    shadowColor: Colors.translucentDark,
+    shadowOpacity: 0.18,
+    shadowOffset: { width: 0, height: 4 },
+    shadowRadius: 12,
+    elevation: 2,
   },
   submitButtonText: {
     textAlign: 'center',
@@ -197,6 +219,7 @@ const styles = StyleSheet.create({
     borderRadius: 12,
     paddingVertical: 14,
     alignItems: 'center',
+    backgroundColor: Colors.surfaceMuted,
   },
   googleButtonText: {
     textAlign: 'center',
@@ -209,5 +232,6 @@ const styles = StyleSheet.create({
   link: {
     fontWeight: '600',
     textDecorationLine: 'underline',
+    color: Colors.accent,
   },
 });
