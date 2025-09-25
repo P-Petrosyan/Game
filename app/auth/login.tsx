@@ -12,9 +12,8 @@ import {
 
 import { ThemedText } from '@/components/themed-text';
 import { ThemedView } from '@/components/themed-view';
-import { Colors } from '@/constants/theme';
+import { NaturePalette } from '@/constants/theme';
 import { useAuth } from '@/context/AuthContext';
-import { useColorScheme } from '@/hooks/use-color-scheme';
 
 export default function LoginScreen() {
   const [email, setEmail] = useState('');
@@ -22,11 +21,8 @@ export default function LoginScreen() {
   const [submitting, setSubmitting] = useState(false);
   const router = useRouter();
   const { login, loginWithGoogle } = useAuth();
-  const colorScheme = useColorScheme() ?? 'light';
-  const accentColor = Colors[colorScheme].tint;
-  const textColor = Colors[colorScheme].text;
-  const buttonTextColor = colorScheme === 'dark' ? Colors.dark.background : '#fff';
-  const placeholderColor = colorScheme === 'dark' ? '#9BA1A6' : '#6B7280';
+  const palette = NaturePalette;
+  const placeholderColor = palette.placeholder;
 
   const isDisabled = email.trim().length === 0 || password.trim().length === 0;
 
@@ -49,12 +45,21 @@ export default function LoginScreen() {
   };
 
   return (
-    <ThemedView style={styles.flex}>
+    <ThemedView style={styles.screen} lightColor={palette.background}>
       <KeyboardAvoidingView
         behavior={Platform.OS === 'ios' ? 'padding' : undefined}
         keyboardVerticalOffset={Platform.OS === 'ios' ? 100 : 0}
         style={styles.container}>
-        <View style={styles.header}>
+        <View
+          style={[
+            styles.panel,
+            {
+              borderColor: palette.border,
+              backgroundColor: palette.surfaceGlass,
+              shadowColor: palette.focus,
+            },
+          ]}>
+          <View style={styles.header}>
           <ThemedText type="title" style={styles.title}>
             Welcome back
           </ThemedText>
@@ -71,7 +76,14 @@ export default function LoginScreen() {
             keyboardType="email-address"
             placeholder="you@example.com"
             placeholderTextColor={placeholderColor}
-            style={[styles.input, { borderColor: accentColor, color: textColor }]}
+            style={[
+              styles.input,
+              {
+                borderColor: palette.border,
+                color: palette.text,
+                backgroundColor: palette.surfaceGlassAlt,
+              },
+            ]}
             returnKeyType="next"
             textContentType="emailAddress"
             onSubmitEditing={() => {
@@ -88,7 +100,14 @@ export default function LoginScreen() {
             secureTextEntry
             placeholder="••••••••"
             placeholderTextColor={placeholderColor}
-            style={[styles.input, { borderColor: accentColor, color: textColor }]}
+            style={[
+              styles.input,
+              {
+                borderColor: palette.border,
+                color: palette.text,
+                backgroundColor: palette.surfaceGlassAlt,
+              },
+            ]}
             returnKeyType="done"
             textContentType="password"
             onSubmitEditing={handleLogin}
@@ -99,33 +118,39 @@ export default function LoginScreen() {
             style={({ pressed }) => [
               styles.submitButton,
               {
-                backgroundColor: accentColor,
-                opacity: isDisabled ? 0.5 : pressed || submitting ? 0.85 : 1,
+                backgroundColor: palette.buttonColor,
+                borderColor: palette.buttonColor,
+                opacity: isDisabled ? 0.6 : pressed || submitting ? 0.92 : 1,
+                shadowColor: palette.focus,
               },
             ]}>
-            <ThemedText type="defaultSemiBold" style={[styles.submitButtonText, { color: buttonTextColor }]}>
+            <ThemedText type="defaultSemiBold" style={[styles.submitButtonText, { color: palette.buttonText }]}>
               {submitting ? 'Signing in…' : 'Sign in'}
             </ThemedText>
           </Pressable>
           <View style={styles.divider}>
-            <View style={[styles.dividerLine, { backgroundColor: textColor }]} />
+            <View style={[styles.dividerLine, { backgroundColor: palette.border }]} />
             <ThemedText style={styles.dividerText}>or</ThemedText>
-            <View style={[styles.dividerLine, { backgroundColor: textColor }]} />
+            <View style={[styles.dividerLine, { backgroundColor: palette.border }]} />
           </View>
           <Pressable
             onPress={async () => {
               try {
                 await loginWithGoogle();
                 router.replace('/');
-              } catch (error) {
+              } catch {
                 Alert.alert('Google Sign-in failed', 'Please try again.');
               }
             }}
             style={({ pressed }) => [
               styles.googleButton,
-              { borderColor: accentColor, opacity: pressed ? 0.85 : 1 },
+              {
+                borderColor: palette.border,
+                opacity: pressed ? 0.88 : 1,
+                backgroundColor: palette.surfaceGlass,
+              },
             ]}>
-            <ThemedText type="defaultSemiBold" style={[styles.googleButtonText, { color: textColor }]}>
+            <ThemedText type="defaultSemiBold" style={[styles.googleButtonText, { color: palette.text }]}> 
               Continue with Google
             </ThemedText>
           </Pressable>
@@ -136,21 +161,35 @@ export default function LoginScreen() {
             Create one now
           </Link>
         </View>
+        </View>
       </KeyboardAvoidingView>
     </ThemedView>
   );
 }
 
 const styles = StyleSheet.create({
-  flex: {
+  screen: {
     flex: 1,
+    paddingHorizontal: 18,
+    paddingVertical: 28,
   },
   container: {
     flex: 1,
+    justifyContent: 'center',
+  },
+  panel: {
+    borderRadius: 28,
     paddingHorizontal: 24,
-    paddingTop: 32,
-    paddingBottom: 24,
-    justifyContent: 'space-between',
+    paddingVertical: 28,
+    gap: 24,
+    borderWidth: 1,
+    width: '100%',
+    maxWidth: 520,
+    alignSelf: 'center',
+    shadowOpacity: 0.18,
+    shadowRadius: 24,
+    shadowOffset: { width: 0, height: 16 },
+    elevation: 6,
   },
   header: {
     gap: 12,
@@ -160,6 +199,7 @@ const styles = StyleSheet.create({
   },
   subtitle: {
     textAlign: 'center',
+    color: NaturePalette.mutedText,
   },
   form: {
     gap: 16,
@@ -175,6 +215,11 @@ const styles = StyleSheet.create({
     borderRadius: 12,
     paddingVertical: 14,
     alignItems: 'center',
+    borderWidth: 1,
+    shadowOpacity: 0.18,
+    shadowRadius: 16,
+    shadowOffset: { width: 0, height: 10 },
+    elevation: 4,
   },
   submitButtonText: {
     textAlign: 'center',
@@ -187,7 +232,7 @@ const styles = StyleSheet.create({
   dividerLine: {
     flex: 1,
     height: 1,
-    opacity: 0.3,
+    opacity: 0.5,
   },
   dividerText: {
     opacity: 0.6,
@@ -197,6 +242,10 @@ const styles = StyleSheet.create({
     borderRadius: 12,
     paddingVertical: 14,
     alignItems: 'center',
+    shadowOpacity: 0.08,
+    shadowRadius: 12,
+    shadowOffset: { width: 0, height: 8 },
+    elevation: 2,
   },
   googleButtonText: {
     textAlign: 'center',

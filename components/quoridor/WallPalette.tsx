@@ -1,6 +1,7 @@
 import React from 'react';
-import { View, StyleSheet, Pressable, PanResponder } from 'react-native';
+import { View, StyleSheet, Pressable } from 'react-native';
 import { ThemedText } from '@/components/themed-text';
+import { NaturePalette } from '@/constants/theme';
 
 import { Orientation } from './game-logic';
 
@@ -20,7 +21,7 @@ export function WallPalette({ wallsRemaining, onWallSelect, selectedOrientation,
     <View style={styles.palette}>
       <ThemedText style={styles.title}>Drag & Drop Walls ({wallsRemaining} remaining)</ThemedText>
       <View style={styles.wallsContainer}>
-        <Pressable 
+        <Pressable
           style={[
             styles.wallItem, 
             selectedOrientation === 'horizontal' && styles.selectedWallItem
@@ -49,14 +50,17 @@ export function WallPalette({ wallsRemaining, onWallSelect, selectedOrientation,
 const styles = StyleSheet.create({
   palette: {
     padding: 16,
-    backgroundColor: 'rgba(0,0,0,0.05)',
-    borderRadius: 12,
+    backgroundColor: NaturePalette.surfaceGlassAlt,
+    borderRadius: 18,
     gap: 12,
+    borderWidth: 1,
+    borderColor: NaturePalette.border,
   },
   title: {
     fontSize: 16,
     fontWeight: '600',
     textAlign: 'center',
+    color: NaturePalette.heading,
   },
   wallsContainer: {
     flexDirection: 'row',
@@ -65,19 +69,19 @@ const styles = StyleSheet.create({
   },
   wallItem: {
     padding: 12,
-    borderRadius: 8,
-    backgroundColor: 'rgba(104,102,102,0.92)',
+    borderRadius: 12,
+    backgroundColor: NaturePalette.surfaceGlass,
     alignItems: 'center',
     gap: 8,
     borderWidth: 2,
-    borderColor: 'transparent',
+    borderColor: NaturePalette.border,
   },
   selectedWallItem: {
-    borderColor: '#f39c12',
-    backgroundColor: 'rgba(243, 156, 18, 0.1)',
+    borderColor: NaturePalette.accent,
+    backgroundColor: NaturePalette.surfaceGlassAlt,
   },
   wall: {
-    backgroundColor: '#8B4513',
+    backgroundColor: NaturePalette.boardWall,
     borderRadius: 2,
   },
   horizontalWall: {
@@ -91,5 +95,6 @@ const styles = StyleSheet.create({
   wallLabel: {
     fontSize: 12,
     fontWeight: '500',
+    color: NaturePalette.mutedText,
   },
 });

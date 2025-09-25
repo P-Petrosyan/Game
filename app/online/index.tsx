@@ -1,12 +1,11 @@
 import { useRouter } from 'expo-router';
 import { useState } from 'react';
-import { ActivityIndicator, Alert, FlatList, Pressable, StyleSheet, TextInput, View, ImageBackground } from 'react-native';
+import { ActivityIndicator, Alert, FlatList, ImageBackground, Pressable, StyleSheet, View } from 'react-native';
 
 import { ThemedText } from '@/components/themed-text';
 import { ThemedView } from '@/components/themed-view';
-import { Colors } from '@/constants/theme';
+import { NaturePalette } from '@/constants/theme';
 import { useGameLobby } from '@/context/GameLobbyContext';
-import { useColorScheme } from '@/hooks/use-color-scheme';
 
 type GameListItemProps = {
   name: string;
@@ -19,8 +18,8 @@ type GameListItemProps = {
 };
 
 function GameListItem({ name, players, maxPlayers, status, isPrivate, onPress, disabled }: GameListItemProps) {
-  const colorScheme = useColorScheme() ?? 'light';
-  const borderColor = Colors[colorScheme].tint;
+  const palette = NaturePalette;
+  const isFull = players >= maxPlayers;
 
   return (
     <Pressable
@@ -30,17 +29,35 @@ function GameListItem({ name, players, maxPlayers, status, isPrivate, onPress, d
       disabled={disabled}
       style={({ pressed }) => [
         styles.gameCard,
-        pressed && styles.gameCardPressed,
-        disabled && styles.gameCardDisabled,
+        {
+          backgroundColor: palette.surfaceGlassAlt,
+          borderColor: palette.border,
+        },
+        pressed && { backgroundColor: palette.surfaceStrong },
+        (disabled || isFull) && { opacity: 0.6 },
       ]}>
       <View style={styles.gameHeader}>
-        <ThemedText type="subtitle" style={styles.gameTitle}>
-          {name}
-        </ThemedText>
-        {isPrivate && <ThemedText style={styles.privateFlag}>🔒 Private</ThemedText>}
+        <View style={styles.gameTitleGroup}>
+          <ThemedText type="subtitle" style={styles.gameTitle}>
+            {name}
+          </ThemedText>
+          <ThemedText style={styles.gamePlayers}>
+            {isFull ? 'Room full' : `${players}/${maxPlayers} players`}
+          </ThemedText>
+        </View>
+        <View style={styles.gameMeta}>
+          {status ? (
+            <View style={styles.statusPill}>
+              <ThemedText style={styles.statusPillText}>{status}</ThemedText>
+            </View>
+          ) : null}
+          {isPrivate ? (
+            <View style={styles.statusPill}>
+              <ThemedText style={styles.statusPillText}>Private</ThemedText>
+            </View>
+          ) : null}
+        </View>
       </View>
-      <ThemedText style={styles.gamePlayers}>{players >= maxPlayers ? 'Full' : `${players}/${maxPlayers} players`}</ThemedText>
-      {status ? <ThemedText style={styles.gameStatus}>{status}</ThemedText> : null}
     </Pressable>
   );
 }
@@ -48,8 +65,7 @@ function GameListItem({ name, players, maxPlayers, status, isPrivate, onPress, d
 export default function OnlineGamesScreen() {
   const { games, loading, joinGame } = useGameLobby();
   const router = useRouter();
-  const colorScheme = useColorScheme() ?? 'light';
-  const accentColor = Colors[colorScheme].tint;
+  const palette = NaturePalette;
   const [joiningGameId, setJoiningGameId] = useState<string | null>(null);
 
   const handleJoinGame = async (gameId: string, isPrivate?: boolean) => {
@@ -87,57 +103,74 @@ export default function OnlineGamesScreen() {
   };
 
   return (
-    <ImageBackground 
+    <ImageBackground
       source={require('@/assets/backgrounds/onlineScreen.webp')}
       style={styles.backgroundImage}
       resizeMode="cover"
     >
-      <ThemedView style={[styles.container, styles.overlay]}>
-      <View style={styles.header}>
-        <ThemedText type="title" style={styles.title}>
-          Game Lobby
-        </ThemedText>
-        <ThemedText style={styles.description}>
-          Pick a game from the list to join or create your own room.
-        </ThemedText>
-        <Pressable
-          onPress={() => router.push('/online/create')}
-          style={({ pressed }) => [
-            styles.createButton,
-            { backgroundColor: Colors.light.buttonColor },
-            pressed && styles.createButtonPressed,
-          ]}>
-          <ThemedText type="defaultSemiBold" style={[styles.createButtonText, { color: Colors.light.text }]}>
-            Create a new game
-          </ThemedText>
-        </Pressable>
-      </View>
-      {loading ? (
-        <View style={styles.loadingState}>
-          <ActivityIndicator />
-        </View>
-      ) : (
-        <FlatList
-          data={games}
-          keyExtractor={(item) => item.id}
-          contentContainerStyle={[styles.listContent, games.length === 0 && styles.emptyListContent]}
-          renderItem={({ item }) => (
-            <GameListItem
-              name={item.name}
-              players={item.players}
-              maxPlayers={item.maxPlayers}
-              status={item.status}
-              isPrivate={item.isPrivate}
-              onPress={() => handleJoinGame(item.id, item.isPrivate)}
-              disabled={item.players >= item.maxPlayers || joiningGameId === item.id}
+      <View style={[styles.overlay, { backgroundColor: palette.overlay }]}>
+        <ThemedView
+          style={[
+            styles.container,
+            {
+              backgroundColor: palette.surfaceGlass,
+              borderColor: palette.border,
+              shadowColor: palette.focus,
+            },
+          ]}
+          lightColor={palette.surfaceGlass}>
+          <View style={styles.header}>
+            <ThemedText type="title" style={styles.title}>
+              Game Lobby
+            </ThemedText>
+            <ThemedText style={styles.description}>
+              Join a room or open a fresh match for your friends.
+            </ThemedText>
+            <Pressable
+              onPress={() => router.push('/online/create')}
+              style={({ pressed }) => [
+                styles.createButton,
+                {
+                  backgroundColor: palette.buttonColor,
+                  borderColor: palette.buttonColor,
+                  shadowColor: palette.focus,
+                },
+                pressed && { opacity: 0.92 },
+              ]}>
+              <ThemedText type="defaultSemiBold" style={styles.createButtonText}>
+                Create a new game
+              </ThemedText>
+            </Pressable>
+          </View>
+          {loading ? (
+            <View style={styles.loadingState}>
+              <ActivityIndicator color={palette.tint} />
+            </View>
+          ) : (
+            <FlatList
+              data={games}
+              keyExtractor={(item) => item.id}
+              contentContainerStyle={[styles.listContent, games.length === 0 && styles.emptyListContent]}
+              renderItem={({ item }) => (
+                <GameListItem
+                  name={item.name}
+                  players={item.players}
+                  maxPlayers={item.maxPlayers}
+                  status={item.status}
+                  isPrivate={item.isPrivate}
+                  onPress={() => handleJoinGame(item.id, item.isPrivate)}
+                  disabled={joiningGameId === item.id || item.players >= item.maxPlayers}
+                />
+              )}
+              ListEmptyComponent={
+                <ThemedText style={styles.emptyText}>
+                  No games available yet. Be the first to create one!
+                </ThemedText>
+              }
             />
           )}
-          ListEmptyComponent={
-            <ThemedText style={styles.emptyText}>No games available yet. Be the first to create one!</ThemedText>
-          }
-        />
-      )}
-      </ThemedView>
+        </ThemedView>
+      </View>
     </ImageBackground>
   );
 }
@@ -147,39 +180,57 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   overlay: {
-    backgroundColor: 'rgba(255,255,255,0.07)',
+    flex: 1,
+    paddingHorizontal: 20,
+    paddingVertical: 28,
   },
   container: {
     flex: 1,
-    paddingHorizontal: 24,
-    paddingTop: 24,
-    paddingBottom: 16,
+    marginHorizontal: 16,
+    marginVertical: 24,
+    borderRadius: 28,
+    padding: 26,
     gap: 24,
+    borderWidth: 1,
+    borderColor: NaturePalette.border,
+    backgroundColor: NaturePalette.surface,
+    width: '100%',
+    maxWidth: 720,
+    alignSelf: 'center',
+    shadowOpacity: 0.16,
+    shadowRadius: 22,
+    shadowOffset: { width: 0, height: 14 },
+    elevation: 6,
   },
   header: {
     gap: 12,
+    alignItems: 'center',
   },
   title: {
     textAlign: 'center',
   },
   description: {
     textAlign: 'center',
+    color: NaturePalette.mutedText,
   },
   createButton: {
     alignSelf: 'center',
-    paddingHorizontal: 20,
+    paddingHorizontal: 24,
     paddingVertical: 12,
-    borderRadius: 14,
-  },
-  createButtonPressed: {
-    opacity: 0.7,
+    borderRadius: 999,
+    borderWidth: 1,
+    shadowOpacity: 0.16,
+    shadowRadius: 14,
+    shadowOffset: { width: 0, height: 10 },
+    elevation: 3,
   },
   createButtonText: {
     textAlign: 'center',
+    color: NaturePalette.buttonText,
   },
   listContent: {
     gap: 16,
-    paddingBottom: 24,
+    paddingBottom: 16,
   },
   emptyListContent: {
     flexGrow: 1,
@@ -187,42 +238,54 @@ const styles = StyleSheet.create({
   },
   emptyText: {
     textAlign: 'center',
-    opacity: 0.6,
+    color: NaturePalette.mutedText,
   },
   gameCard: {
-    backgroundColor: Colors.light.backgroundOpacity,
-    borderRadius: 14,
-    paddingHorizontal: 18,
-    paddingVertical: 16,
-  },
-  gameCardPressed: {
-    transform: [{ scale: 0.99 }],
-  },
-  gameCardDisabled: {
-    opacity: 0.6,
+    borderRadius: 20,
+    paddingHorizontal: 20,
+    paddingVertical: 18,
+    borderWidth: 1,
+    shadowOpacity: 0.1,
+    shadowRadius: 18,
+    shadowOffset: { width: 0, height: 10 },
+    elevation: 3,
   },
   gameHeader: {
     flexDirection: 'row',
     justifyContent: 'space-between',
+    gap: 16,
     alignItems: 'center',
+  },
+  gameTitleGroup: {
+    flex: 1,
+    gap: 6,
   },
   gameTitle: {
     fontSize: 18,
-    textAlign: 'left',
-    flex: 1,
-  },
-  privateFlag: {
-    fontSize: 12,
-    opacity: 0.7,
   },
   gamePlayers: {
     fontSize: 14,
-    opacity: 0.7,
+    color: NaturePalette.mutedText,
   },
-  gameStatus: {
+  gameMeta: {
+    flexDirection: 'row',
+    gap: 8,
+    alignItems: 'center',
+  },
+  statusPill: {
+    paddingHorizontal: 10,
+    paddingVertical: 4,
+    borderRadius: 999,
+    backgroundColor: NaturePalette.surfaceGlass,
+    borderWidth: 1,
+    borderColor: NaturePalette.border,
+  },
+  statusPillText: {
     fontSize: 12,
-    opacity: 0.7,
-    textTransform: 'capitalize',
+    fontWeight: '600',
+    color: NaturePalette.accent,
+    textTransform: 'uppercase',
+    letterSpacing: 0.5,
   },
   loadingState: {
     flex: 1,

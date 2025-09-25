@@ -13,9 +13,8 @@ import {
 
 import { ThemedText } from '@/components/themed-text';
 import { ThemedView } from '@/components/themed-view';
-import { Colors } from '@/constants/theme';
+import { NaturePalette } from '@/constants/theme';
 import { useGameLobby } from '@/context/GameLobbyContext';
-import { useColorScheme } from '@/hooks/use-color-scheme';
 
 export default function CreateGameScreen() {
   const [gameName, setGameName] = useState('');
@@ -23,11 +22,8 @@ export default function CreateGameScreen() {
   const [submitting, setSubmitting] = useState(false);
   const router = useRouter();
   const { createGame } = useGameLobby();
-  const colorScheme = useColorScheme() ?? 'light';
-  const accentColor = Colors[colorScheme].tint;
-  const textColor = Colors[colorScheme].text;
-  const buttonTextColor = colorScheme === 'dark' ? Colors.dark.background : '#fff';
-  const placeholderColor = colorScheme === 'dark' ? '#9BA1A6' : '#6B7280';
+  const palette = NaturePalette;
+  const placeholderColor = palette.placeholder;
 
   const isDisabled = gameName.trim().length === 0;
 
@@ -56,7 +52,18 @@ export default function CreateGameScreen() {
       style={styles.backgroundImage}
       resizeMode="cover"
     >
-      <ThemedView style={[styles.flex, styles.overlay]}>
+      <View style={[styles.overlay, { backgroundColor: palette.overlay }]}>
+      <ThemedView
+        style={[
+          styles.flex,
+          styles.card,
+          {
+            borderColor: palette.border,
+            backgroundColor: palette.surfaceGlass,
+            shadowColor: palette.focus,
+          },
+        ]}
+        lightColor={palette.surfaceGlass}>
       <KeyboardAvoidingView
         behavior={Platform.OS === 'ios' ? 'padding' : undefined}
         keyboardVerticalOffset={Platform.OS === 'ios' ? 100 : 0}
@@ -76,7 +83,14 @@ export default function CreateGameScreen() {
             onChangeText={setGameName}
             placeholder="e.g. Saturday Showdown"
             placeholderTextColor={placeholderColor}
-            style={[styles.input, { borderColor: accentColor, color: textColor }]}
+            style={[
+              styles.input,
+              {
+                borderColor: palette.border,
+                color: palette.text,
+                backgroundColor: palette.surfaceGlassAlt,
+              },
+            ]}
             returnKeyType="done"
             onSubmitEditing={handleCreate}
           />
@@ -86,7 +100,14 @@ export default function CreateGameScreen() {
             onChangeText={setGameCode}
             placeholder="Leave empty for public game"
             placeholderTextColor={placeholderColor}
-            style={[styles.input, { borderColor: accentColor, color: textColor }]}
+            style={[
+              styles.input,
+              {
+                borderColor: palette.border,
+                color: palette.text,
+                backgroundColor: palette.surfaceGlassAlt,
+              },
+            ]}
             returnKeyType="done"
             onSubmitEditing={handleCreate}
           />
@@ -96,17 +117,20 @@ export default function CreateGameScreen() {
             style={({ pressed }) => [
               styles.submitButton,
               {
-                backgroundColor: Colors.light.buttonColor,
-                opacity: isDisabled ? 0.7 : pressed || submitting ? 0.85 : 1,
+                backgroundColor: palette.buttonColor,
+                borderColor: palette.buttonColor,
+                opacity: isDisabled ? 0.6 : pressed || submitting ? 0.92 : 1,
+                shadowColor: palette.focus,
               },
             ]}>
-            <ThemedText type="defaultSemiBold" style={[styles.submitButtonText, { color: Colors.dark.text }]}>
+            <ThemedText type="defaultSemiBold" style={[styles.submitButtonText, { color: palette.buttonText }]}>
               {submitting ? 'Creating…' : 'Create game'}
             </ThemedText>
           </Pressable>
         </View>
       </KeyboardAvoidingView>
       </ThemedView>
+      </View>
     </ImageBackground>
   );
 }
@@ -115,18 +139,35 @@ const styles = StyleSheet.create({
   backgroundImage: {
     flex: 1,
   },
-  overlay: {
-    backgroundColor: 'rgba(255,255,255,0)',
-  },
   flex: {
     flex: 1,
+  },
+  overlay: {
+    flex: 1,
+    paddingHorizontal: 18,
+    paddingVertical: 24,
+  },
+  card: {
+    marginHorizontal: 16,
+    marginVertical: 24,
+    borderRadius: 30,
+    borderWidth: 1,
+    borderColor: NaturePalette.border,
+    width: '100%',
+    maxWidth: 620,
+    alignSelf: 'center',
+    shadowOpacity: 0.16,
+    shadowRadius: 24,
+    shadowOffset: { width: 0, height: 14 },
+    elevation: 6,
   },
   container: {
     flex: 1,
     paddingHorizontal: 24,
     paddingTop: 32,
-    paddingBottom: 24,
-    justifyContent: 'space-around',
+    paddingBottom: 28,
+    justifyContent: 'space-between',
+    gap: 24,
   },
   header: {
     gap: 12,
@@ -136,26 +177,31 @@ const styles = StyleSheet.create({
   },
   subtitle: {
     textAlign: 'center',
+    color: NaturePalette.mutedText,
   },
   form: {
-    gap: 10,
+    gap: 16,
   },
   inputHeader: {
     fontSize: 16,
-    color: Colors.light.text,
+    color: NaturePalette.heading,
   },
   input: {
     borderRadius: 12,
     paddingHorizontal: 16,
     paddingVertical: Platform.select({ ios: 14, default: 12 }),
     fontSize: 16,
-    backgroundColor: Colors.light.backgroundOpacity,
+    borderWidth: 1,
   },
   submitButton: {
     borderRadius: 12,
     paddingVertical: 14,
     alignItems: 'center',
-    backgroundColor: Colors.light.buttonColor,
+    borderWidth: 1,
+    shadowOpacity: 0.16,
+    shadowRadius: 16,
+    shadowOffset: { width: 0, height: 10 },
+    elevation: 4,
   },
   submitButtonText: {
     textAlign: 'center',

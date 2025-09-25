@@ -1,14 +1,13 @@
 import { useLocalSearchParams, useRouter } from 'expo-router';
-import { useEffect, useMemo, useState } from 'react';
-import { ActivityIndicator, Alert, Pressable, ScrollView, StyleSheet, View, ImageBackground } from 'react-native';
+import { useCallback, useEffect, useMemo, useState } from 'react';
+import { ActivityIndicator, Alert, Pressable, StyleSheet, View, ImageBackground } from 'react-native';
 
 import { ThemedText } from '@/components/themed-text';
 import { ThemedView } from '@/components/themed-view';
 import { MultiplayerQuoridorGame } from '@/components/quoridor/MultiplayerQuoridorGame';
-import { Colors } from '@/constants/theme';
+import { NaturePalette } from '@/constants/theme';
 import { useAuth } from '@/context/AuthContext';
 import { useGameLobby } from '@/context/GameLobbyContext';
-import { useColorScheme } from '@/hooks/use-color-scheme';
 import { useRealtimeGame } from '@/hooks/use-realtime-game';
 import { db } from '@/services/firebase';
 import { serverTimestamp, updateDoc, doc } from 'firebase/firestore';
@@ -29,8 +28,8 @@ export default function GameSessionScreen() {
   const { gameState, loading, error } = useRealtimeGame(gameId);
   const { user } = useAuth();
   const { leaveGame } = useGameLobby();
-  const colorScheme = useColorScheme() ?? 'light';
-  const accentColor = Colors[colorScheme].background;
+  const palette = NaturePalette;
+  const accentColor = palette.accent;
   const [leaving, setLeaving] = useState(false);
   const [isReady, setIsReady] = useState(false);
   const [countdown, setCountdown] = useState(0);
@@ -42,20 +41,21 @@ export default function GameSessionScreen() {
   // }, [gameId, router]);
 
   useEffect(() => {
-    if (!gameState?.players || !user) return;
-    
+    if (!gameState?.players || !user) {
+      return;
+    }
+
     const playerIds = Object.keys(gameState.players);
     if (playerIds.length === 1 && playerIds[0] !== user.uid) {
-      // Game was abandoned, delete it
-      handleLeaveGame();
+      void handleLeaveGame();
     }
-  }, [gameState?.players, user]);
+  }, [gameState?.players, handleLeaveGame, user]);
 
   useEffect(() => {
     if (gameState?.status === 'starting' && countdown === 0) {
       setCountdown(3);
       const timer = setInterval(() => {
-        setCountdown(prev => {
+        setCountdown((prev) => {
           if (prev <= 1) {
             clearInterval(timer);
             updateGameStatus('playing');
@@ -66,12 +66,7 @@ export default function GameSessionScreen() {
       }, 1000);
       return () => clearInterval(timer);
     }
-  }, [gameState?.status]);
-
-  const currentPlayer = useMemo(() => {
-    const rawValue = (gameState?.state?.currentPlayer as string | undefined) ?? 'north';
-    return rawValue === 'south' ? 'south' : 'north';
-  }, [gameState?.state?.currentPlayer]);
+  }, [countdown, gameState?.status, updateGameStatus]);
 
   const playerEntries: PlayerEntry[] = useMemo(() => {
     if (!gameState?.players) {
@@ -88,10 +83,12 @@ export default function GameSessionScreen() {
   }, [gameState?.players]);
 
   const isWaitingForPlayers = playerEntries.length < 2;
-  const bothPlayersReady = playerEntries.length === 2 && 
-    Object.values(gameState?.players || {}).every(p => p.ready);
   const isGameStarted = gameState?.status === 'playing';
   const isCountingDown = gameState?.status === 'starting' && countdown > 0;
+
+  const lobbyStatusStyles = isWaitingForPlayers
+    ? { background: palette.surfaceGlass, border: palette.border, text: palette.accent }
+    : { background: palette.successSurface, border: palette.success, text: palette.success };
 
   const handleReady = async () => {
     if (!gameId || !user) return;
@@ -117,25 +114,28 @@ export default function GameSessionScreen() {
           });
         }
       }
-    } catch (error) {
+    } catch {
       Alert.alert('Error', 'Failed to update ready status');
     }
   };
 
-  const updateGameStatus = async (status: string) => {
-    if (!gameId) return;
-    try {
-      const gameRef = doc(db, 'games', gameId);
-      await updateDoc(gameRef, {
-        status,
-        updatedAt: serverTimestamp(),
-      });
-    } catch (error) {
-      console.error('Failed to update game status:', error);
-    }
-  };
+  const updateGameStatus = useCallback(
+    async (status: string) => {
+      if (!gameId) return;
+      try {
+        const gameRef = doc(db, 'games', gameId);
+        await updateDoc(gameRef, {
+          status,
+          updatedAt: serverTimestamp(),
+        });
+      } catch (error) {
+        console.error('Failed to update game status:', error);
+      }
+    },
+    [gameId],
+  );
 
-  const handleLeaveGame = async () => {
+  const handleLeaveGame = useCallback(async () => {
     if (!gameId) {
       return;
     }
@@ -155,7 +155,7 @@ export default function GameSessionScreen() {
     } finally {
       setLeaving(false);
     }
-  };
+  }, [gameId, leaveGame, router, user]);
 
   if (!gameId) {
     return null;
@@ -167,10 +167,20 @@ export default function GameSessionScreen() {
       style={styles.backgroundImage}
       resizeMode="cover"
     >
-      <ThemedView style={[styles.container, styles.overlay]}>
+      <View style={[styles.overlay, { backgroundColor: palette.overlay }]}>
+      <ThemedView
+        style={[
+          styles.container,
+          {
+            borderColor: palette.border,
+            backgroundColor: palette.surfaceGlass,
+            shadowColor: palette.focus,
+          },
+        ]}
+        lightColor={palette.surfaceGlass}>
         {loading ? (
           <View style={styles.loadingState}>
-            <ActivityIndicator />
+            <ActivityIndicator color={palette.tint} />
           </View>
         ) : error ? (
           <View style={styles.errorState}>
@@ -207,8 +217,15 @@ export default function GameSessionScreen() {
               <ThemedText style={styles.subtitle}>
                 Hosted by {gameState.hostName ?? 'Unknown host'}
               </ThemedText>
-              <View style={[styles.statusPill, { backgroundColor: '#444' }]}>
-                <ThemedText style={styles.statusPillText}>
+              <View
+                style={[
+                  styles.statusPill,
+                  {
+                    backgroundColor: lobbyStatusStyles.background,
+                    borderColor: lobbyStatusStyles.border,
+                  },
+                ]}>
+                <ThemedText style={[styles.statusPillText, { color: lobbyStatusStyles.text }]}>
                   {isWaitingForPlayers ? 'WAITING' : 'READY CHECK'}
                 </ThemedText>
               </View>
@@ -226,7 +243,12 @@ export default function GameSessionScreen() {
                 const isPlayerReady = playerData?.ready || false;
                 return (
                   <View key={player.id} style={styles.playerRow}>
-                    <View style={[styles.playerBadge, { backgroundColor: isPlayerReady ? '#27ae60' : accentColor }]} />
+                    <View
+                      style={[
+                        styles.playerBadge,
+                        { backgroundColor: isPlayerReady ? palette.success : accentColor },
+                      ]}
+                    />
                     <ThemedText style={styles.playerName}>{player.displayName}</ThemedText>
                     <ThemedText style={styles.readyStatus}>
                       {isPlayerReady ? 'Ready' : 'Not Ready'}
@@ -248,7 +270,10 @@ export default function GameSessionScreen() {
                   onPress={handleReady}
                   style={({ pressed }) => [
                     styles.primaryButton,
-                    { backgroundColor: isReady ? 'rgba(39,174,96,0.4)' : accentColor },
+                    {
+                      backgroundColor: isReady ? palette.successSurface : accentColor,
+                      borderColor: isReady ? palette.success : accentColor,
+                    },
                     pressed && styles.primaryButtonPressed,
                   ]}>
                   <ThemedText type="defaultSemiBold" style={styles.primaryButtonText}>
@@ -263,7 +288,7 @@ export default function GameSessionScreen() {
                 Leave match
               </ThemedText>
               <ThemedText style={styles.cardMessage}>
-                Leaving will delete the game if you're the only player.
+                Leaving will delete the game if you&apos;re the only player.
               </ThemedText>
               <Pressable
                 onPress={handleLeaveGame}
@@ -280,6 +305,7 @@ export default function GameSessionScreen() {
           </>
         )}
       </ThemedView>
+      </View>
     </ImageBackground>
   );
 }
@@ -289,16 +315,26 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   overlay: {
-    backgroundColor: 'rgba(255,255,255,0.11)',
+    flex: 1,
+    paddingHorizontal: 18,
+    paddingVertical: 24,
   },
-  // scrollContainer: {
-  //   flexGrow: 1,
-  // },
   container: {
     flex: 1,
-    paddingTop: 62,
-    paddingBottom: 32,
+    marginHorizontal: 16,
+    marginVertical: 24,
+    padding: 26,
+    borderRadius: 30,
+    borderWidth: 1,
     gap: 24,
+    width: '100%',
+    maxWidth: 760,
+    alignSelf: 'center',
+    shadowColor: NaturePalette.focus,
+    shadowOpacity: 0.18,
+    shadowRadius: 26,
+    shadowOffset: { width: 0, height: 16 },
+    elevation: 7,
   },
   loadingState: {
     flex: 1,
@@ -315,65 +351,91 @@ const styles = StyleSheet.create({
   },
   errorMessage: {
     textAlign: 'center',
-    opacity: 0.7,
+    color: NaturePalette.mutedText,
   },
   backButton: {
-    paddingHorizontal: 16,
-    paddingVertical: 10,
+    paddingHorizontal: 20,
+    paddingVertical: 12,
     borderRadius: 999,
-    backgroundColor: Colors.dark.backgroundOpacity
+    backgroundColor: NaturePalette.surfaceGlass,
+    borderWidth: 1,
+    borderColor: NaturePalette.border,
+    shadowColor: NaturePalette.focus,
+    shadowOpacity: 0.1,
+    shadowRadius: 12,
+    shadowOffset: { width: 0, height: 8 },
+    elevation: 2,
   },
   backButtonPressed: {
-    opacity: 0.7,
+    opacity: 0.85,
   },
   header: {
     alignItems: 'center',
-    backgroundColor: Colors.light.backgroundOpacity ,
+    backgroundColor: NaturePalette.surfaceGlass,
     paddingVertical: 16,
     paddingHorizontal: 24,
-    borderRadius: 16,
+    borderRadius: 22,
     gap: 8,
+    borderWidth: 1,
+    borderColor: NaturePalette.border,
+    shadowColor: NaturePalette.focus,
+    shadowOpacity: 0.12,
+    shadowRadius: 18,
+    shadowOffset: { width: 0, height: 12 },
+    elevation: 4,
   },
   title: {
     textAlign: 'center',
   },
   subtitle: {
     textAlign: 'center',
-    opacity: 0.8,
+    color: NaturePalette.mutedText,
   },
   statusPill: {
     marginTop: 4,
     borderRadius: 999,
     paddingHorizontal: 12,
     paddingVertical: 4,
+    backgroundColor: NaturePalette.surfaceGlass,
+    borderWidth: 1,
+    borderColor: NaturePalette.border,
   },
   statusPillText: {
-    color: '#fff',
     fontSize: 12,
     fontWeight: '600',
     textAlign: 'center',
+    textTransform: 'uppercase',
+    letterSpacing: 0.6,
   },
   card: {
-    borderRadius: 16,
+    borderRadius: 20,
     paddingHorizontal: 20,
     paddingVertical: 18,
     gap: 12,
-    backgroundColor: Colors.light.backgroundOpacity,
-    borderColor: 'rgba(0,0,0,0.08)',
+    backgroundColor: NaturePalette.surfaceGlassAlt,
+    borderWidth: 1,
+    borderColor: NaturePalette.border,
+    shadowColor: NaturePalette.focus,
+    shadowOpacity: 0.12,
+    shadowRadius: 18,
+    shadowOffset: { width: 0, height: 12 },
+    elevation: 4,
   },
   cardHeading: {
     textAlign: 'left',
   },
   cardMessage: {
     lineHeight: 20,
+    color: NaturePalette.mutedText,
   },
   cardHint: {
     fontSize: 12,
-    opacity: 0.7,
+    color: NaturePalette.mutedText,
   },
   readyStatus: {
     fontSize: 12,
     fontWeight: '600',
+    color: NaturePalette.mutedText,
   },
   countdownContainer: {
     flex: 1,
@@ -385,10 +447,11 @@ const styles = StyleSheet.create({
     lineHeight: 60,
     fontSize: 60,
     fontWeight: 'bold',
+    color: NaturePalette.heading,
   },
   countdownLabel: {
     fontSize: 18,
-    opacity: 0.8,
+    color: NaturePalette.mutedText,
   },
   playerRow: {
     flexDirection: 'row',
@@ -404,28 +467,42 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   primaryButton: {
-    backgroundColor: Colors.light.tint,
+    backgroundColor: NaturePalette.buttonColor,
     paddingVertical: 12,
-    borderRadius: 12,
+    borderRadius: 999,
     alignItems: 'center',
+    borderWidth: 1,
+    borderColor: NaturePalette.buttonColor,
+    shadowColor: NaturePalette.focus,
+    shadowOpacity: 0.16,
+    shadowRadius: 16,
+    shadowOffset: { width: 0, height: 10 },
+    elevation: 4,
   },
   primaryButtonPressed: {
-    opacity: 0.8,
+    opacity: 0.9,
   },
   primaryButtonText: {
-    color: '#fff',
+    color: NaturePalette.buttonText,
   },
   secondaryButton: {
     paddingVertical: 12,
-    borderRadius: 12,
+    borderRadius: 999,
     alignItems: 'center',
     borderWidth: 1,
-    borderColor: 'rgba(0,0,0,0.15)',
+    borderColor: NaturePalette.destructive,
+    backgroundColor: NaturePalette.surfaceGlass,
+    shadowColor: NaturePalette.focus,
+    shadowOpacity: 0.12,
+    shadowRadius: 14,
+    shadowOffset: { width: 0, height: 10 },
+    elevation: 3,
   },
   secondaryButtonPressed: {
-    opacity: 0.8,
+    opacity: 0.85,
   },
   secondaryButtonText: {
-    color: '#c0392b',
+    color: NaturePalette.destructive,
+    fontWeight: '600',
   },
 });

@@ -2,7 +2,7 @@ import React, { useMemo } from 'react';
 import { Pressable, StyleSheet, View, useWindowDimensions } from 'react-native';
 
 import { ThemedText } from '@/components/themed-text';
-import { useColorScheme } from '@/hooks/use-color-scheme';
+import { NaturePalette } from '@/constants/theme';
 
 import { BOARD_SIZE, PlayerId, Position, Wall, positionKey } from './game-logic';
 
@@ -38,45 +38,29 @@ export function QuoridorBoard({
                                 boardRef,
                                 myPlayerSide = 'north',
                               }: QuoridorBoardProps) {
-  const colorScheme = useColorScheme() ?? 'light';
   const { width } = useWindowDimensions();
   const boardSize = Math.min(width - 12, 420);
   const wallThickness = Math.max(4, boardSize * 0.033);
   const cellSize = (boardSize - wallThickness * (BOARD_SIZE - 1) - 8) / BOARD_SIZE;
 
-  const palette = useMemo(() => {
-    // if (colorScheme === 'dark') {
-    //   return {
-    //     board: '#1f1b16',
-    //     cell: '#3a3128',
-    //     grid: '#7a5b3f',
-    //     wall: '#a8672d',
-    //     pawn: {
-    //       north: '#9fc5ff',
-    //       south: '#f39c96',
-    //     },
-    //     pawnOutline: '#ffffff',
-    //     currentOutline: '#f1c40f',
-    //     move: 'rgba(46, 204, 113, 0.75)',
-    //     wallHint: 'rgba(241, 196, 15, 0.35)',
-    //   } as const;
-    // }
-
-    return {
-      board: '#f5ede1',
-      cell: '#fdf6e3',
-      grid: '#c8a46d',
-      wall: '#a8672d',
+  const palette = useMemo(
+    () => ({
+      board: NaturePalette.surfaceStrong,
+      cell: NaturePalette.surfaceGlass,
+      grid: NaturePalette.border,
+      wall: NaturePalette.boardWall,
       pawn: {
-        north: '#2c3e50',
-        south: '#c0392b',
+        north: NaturePalette.boardNorth,
+        south: NaturePalette.boardSouth,
       },
-      pawnOutline: '#ffffff',
-      currentOutline: '#f39c12',
-      move: 'rgba(26, 188, 156, 0.75)',
-      wallHint: 'rgba(243, 156, 18, 0.3)',
-    } as const;
-  }, [colorScheme]);
+      pawnOutline: NaturePalette.surface,
+      currentOutline: NaturePalette.accent,
+      move: NaturePalette.boardMove,
+      wallHint: NaturePalette.boardHint,
+      dragHint: NaturePalette.boardDragHint,
+    }),
+    [],
+  );
 
   const validMoveKeys = useMemo(() => new Set(validMoves.map((move) => positionKey(move))), [validMoves]);
 
@@ -120,7 +104,7 @@ export function QuoridorBoard({
           const isValidMove = mode === 'move' && validMoveKeys.has(key) && !occupant;
 
           const left = 2 + col * (cellSize + wallThickness);
-          const top = 2 +  row * (cellSize + wallThickness);
+          const top = 2 + row * (cellSize + wallThickness);
 
           return (
             <Pressable
@@ -145,9 +129,9 @@ export function QuoridorBoard({
                 <View
                   pointerEvents="none"
                   style={{
-                    width: cellSize * 0.3,
-                    height: cellSize * 0.3,
-                    borderRadius: (cellSize * 0.3) / 2,
+                    width: cellSize * 0.28,
+                    height: cellSize * 0.28,
+                    borderRadius: (cellSize * 0.28) / 2,
                     backgroundColor: palette.move,
                   }}
                 />
@@ -170,7 +154,7 @@ export function QuoridorBoard({
                     type="defaultSemiBold"
                     style={{
                       lineHeight: cellSize * 0.5,
-                      color: colorScheme === 'dark' ? '#ffffff' : '#fff',
+                    color: NaturePalette.buttonText,
                       fontSize: cellSize * 0.32,
                     }}>
                     {PAWN_LABEL[occupant]}
@@ -214,10 +198,10 @@ export function QuoridorBoard({
               top: baseTop + 2,
               width: wallThickness - 3,
               height: cellSize * 2 + wallThickness,
-              backgroundColor: palette.wall,
-              borderRadius: wallThickness - 10,
-            }}
-          />
+                backgroundColor: palette.wall,
+                borderRadius: wallThickness - 10,
+              }}
+            />
         );
       })}
 
@@ -240,7 +224,7 @@ export function QuoridorBoard({
                   width: cellSize * 2 + wallThickness - 30,
                   height: wallThickness,
                   borderRadius: wallThickness / 3,
-                  backgroundColor: mode === 'drag' ? 'rgba(241, 196, 15, 0.6)' : palette.wallHint,
+                  backgroundColor: mode === 'drag' ? palette.dragHint : palette.wallHint,
                   borderWidth: 1,
                   borderColor: palette.wall,
                 }}
@@ -260,7 +244,7 @@ export function QuoridorBoard({
                 width: wallThickness,
                 height: cellSize * 2 + wallThickness - 30,
                 borderRadius: wallThickness / 3,
-                backgroundColor: mode === 'drag' ? 'rgba(241, 196, 15, 0.6)' : palette.wallHint,
+                backgroundColor: mode === 'drag' ? palette.dragHint : palette.wallHint,
                 borderWidth: 1,
                 borderColor: palette.wall,
               }}

@@ -1,36 +1,50 @@
-/**
- * Below are the colors that are used in the app. The colors are defined in the light and dark mode.
- * There are many other ways to style your app. For example, [Nativewind](https://www.nativewind.dev/), [Tamagui](https://tamagui.dev/), [unistyles](https://reactnativeunistyles.vercel.app), etc.
- */
-
 import { Platform } from 'react-native';
 
-const tintColorLight = '#0a7ea4';
-const tintColorDark = '#dcd3c6';
+const palette = {
+  text: '#214235',
+  mutedText: 'rgba(33, 66, 53, 0.72)',
+  heading: '#16382A',
+  background: '#F2F6F3',
+  overlay: 'rgba(18, 49, 35, 0.32)',
+  surface: 'rgba(255, 255, 255, 0.86)',
+  surfaceAlt: 'rgba(232, 243, 236, 0.82)',
+  surfaceStrong: 'rgba(210, 229, 219, 0.9)',
+  surfaceGlass: 'rgba(250, 255, 252, 0.82)',
+  surfaceGlassAlt: 'rgba(230, 244, 236, 0.78)',
+  tint: '#6FAF94',
+  accent: '#4F9374',
+  accentSoft: '#86C1A4',
+  icon: '#4F9374',
+  tabIconDefault: 'rgba(79, 147, 116, 0.55)',
+  tabIconSelected: '#6FAF94',
+  buttonColor: '#4F9374',
+  buttonText: '#F6FBF8',
+  border: 'rgba(79, 147, 116, 0.32)',
+  borderStrong: 'rgba(79, 147, 116, 0.5)',
+  backgroundOpacity: 'rgba(255, 255, 255, 0.72)',
+  highlight: 'rgba(111, 175, 148, 0.24)',
+  success: '#3E8C68',
+  successSurface: 'rgba(62, 140, 104, 0.16)',
+  destructive: '#C36D6D',
+  destructiveSurface: 'rgba(195, 109, 109, 0.18)',
+  placeholder: 'rgba(33, 66, 53, 0.48)',
+  focus: 'rgba(79, 147, 116, 0.4)',
+  boardNorth: '#4F9374',
+  boardSouth: '#C98C5C',
+  boardWall: '#B88A63',
+  boardMove: 'rgba(111, 175, 148, 0.34)',
+  boardHint: 'rgba(111, 175, 148, 0.24)',
+  boardDragHint: 'rgba(240, 203, 116, 0.45)',
+} as const;
 
-export const Colors = {
-  light: {
-    text: '#11181C',
-    background: 'rgba(170,160,146,0.73)',
-    tint: tintColorLight,
-    icon: '#687076',
-    tabIconDefault: '#687076',
-    tabIconSelected: tintColorLight,
-    buttonColor: '#dcd3c6',
-    backgroundOpacity: 'rgba(220,211,198,0.76)',
-  },
-  dark: {
-    text: '#11181C',
-    background: 'rgba(120,83,47,0.73)',
-    tint: tintColorDark,
-    icon: '#9BA1A6',
-    tabIconDefault: '#9BA1A6',
-    tabIconSelected: tintColorDark,
-    buttonColor: '#dcd3c6',
-    backgroundOpacity: 'rgba(220,211,198,0.76)',
+export type ThemeColors = typeof palette;
 
-  },
+export const Colors: { light: ThemeColors; dark: ThemeColors } = {
+  light: palette,
+  dark: palette,
 };
+
+export const NaturePalette = palette;
 
 export const Fonts = Platform.select({
   ios: {

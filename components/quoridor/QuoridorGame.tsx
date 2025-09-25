@@ -3,8 +3,7 @@ import { Pressable, ScrollView, StyleSheet, View } from 'react-native';
 
 import { ThemedText } from '@/components/themed-text';
 import { ThemedView } from '@/components/themed-view';
-import { Colors } from '@/constants/theme';
-import { useColorScheme } from '@/hooks/use-color-scheme';
+import { NaturePalette } from '@/constants/theme';
 
 import {
   INITIAL_POSITIONS,
@@ -47,12 +46,7 @@ const PLAYER_LABELS: Record<PlayerId, string> = {
   south: 'South',
 };
 
-function formatPosition(position: Position): string {
-  return `row ${position.row + 1}, column ${position.col + 1}`;
-}
-
 export function QuoridorGame() {
-  const colorScheme = useColorScheme() ?? 'light';
   const [positions, setPositions] = useState<Record<PlayerId, Position>>(() => ({
     north: { ...INITIAL_POSITIONS.north },
     south: { ...INITIAL_POSITIONS.south },
@@ -64,7 +58,6 @@ export function QuoridorGame() {
   });
   const [currentPlayer, setCurrentPlayer] = useState<PlayerId>('north');
   const [mode, setMode] = useState<Mode>('move');
-  const [isDragging, setIsDragging] = useState(false);
   const boardRef = useRef<View>(null);
   const [wallOrientation, setWallOrientation] = useState<Orientation>('horizontal');
   const [winner, setWinner] = useState<PlayerId | null>(null);
@@ -72,40 +65,26 @@ export function QuoridorGame() {
 
   const opponent = getOpponent(currentPlayer);
 
-  const controlPalette = useMemo(() => {
-    if (colorScheme === 'dark') {
-      return {
-        base: '#2f2720',
-        disabled: 'rgba(255,255,255,0.1)',
-        accent: '#f1c40f',
-        text: '#f8ede0',
-        activeText: '#1c130a',
-        disabledText: 'rgba(255,255,255,0.45)',
-      } as const;
-    }
+  const controlPalette = useMemo(
+    () => ({
+      base: NaturePalette.surfaceGlass,
+      disabled: NaturePalette.highlight,
+      accent: NaturePalette.buttonColor,
+      text: NaturePalette.text,
+      activeText: NaturePalette.buttonText,
+      disabledText: NaturePalette.mutedText,
+      border: NaturePalette.border,
+    }),
+    [],
+  );
 
-    return {
-      base: '#f8f1e4',
-      disabled: 'rgba(0,0,0,0.06)',
-      accent: '#f39c12',
-      text: '#3c2f22',
-      activeText: '#fff',
-      disabledText: 'rgba(0,0,0,0.35)',
-    } as const;
-  }, [colorScheme]);
-
-  const playerColors = useMemo(() => {
-    if (colorScheme === 'dark') {
-      return {
-        north: '#9fc5ff',
-        south: '#f39c96',
-      } as const;
-    }
-    return {
-      north: '#2c3e50',
-      south: '#c0392b',
-    } as const;
-  }, [colorScheme]);
+  const playerColors = useMemo(
+    () => ({
+      north: NaturePalette.boardNorth,
+      south: NaturePalette.boardSouth,
+    }),
+    [],
+  );
 
   const blockedEdges = useMemo(() => buildBlockedEdges(walls), [walls]);
 
@@ -175,7 +154,7 @@ export function QuoridorGame() {
   );
 
   const WallOrientationButton = ({ orientation, isActive, onPress, disabled }: WallOrientationButtonProps) => {
-    const previewColor = colorScheme === 'dark' ? '#f8ede0' : '#5d3b21';
+    const previewColor = NaturePalette.accent;
 
     return (
       <Pressable
@@ -191,11 +170,7 @@ export function QuoridorGame() {
               : disabled
                 ? controlPalette.disabled
                 : controlPalette.base,
-            borderColor: isActive
-              ? controlPalette.accent
-              : colorScheme === 'dark'
-                ? 'rgba(255,255,255,0.12)'
-                : 'rgba(0,0,0,0.08)',
+            borderColor: isActive ? controlPalette.accent : controlPalette.border,
           },
         ]}>
         <View
@@ -228,30 +203,13 @@ export function QuoridorGame() {
   const helperMessage = winner
     ? 'Tap “Start a new game” to reset the board and challenge a friend again.'
     : statusMessage ??
-    (mode === 'wall'
-      ? availableWalls.length > 0
-        ? `Tap a highlighted groove to place a ${wallOrientation} wall.`
-        : 'No legal placements for this orientation. Try switching orientation or move your pawn.'
-      : 'Tap a highlighted square to move your pawn.');
+      (mode === 'wall'
+        ? availableWalls.length > 0
+          ? `Tap a highlighted groove to place a ${wallOrientation} wall.`
+          : 'No legal placements for this orientation. Try switching orientation or move your pawn.'
+        : 'Tap a highlighted square to move your pawn.');
 
   const canCurrentPlayerPlaceWall = wallsRemaining[currentPlayer] > 0;
-
-  const startNewGame = () => {
-    setPositions({
-      north: { ...INITIAL_POSITIONS.north },
-      south: { ...INITIAL_POSITIONS.south },
-    });
-    setWalls([]);
-    setWallsRemaining({
-      north: MAX_WALLS_PER_PLAYER,
-      south: MAX_WALLS_PER_PLAYER,
-    });
-    setCurrentPlayer('north');
-    setMode('move');
-    setWallOrientation('horizontal');
-    setWinner(null);
-    setStatusMessage(null);
-  };
 
   const handleSelectMode = (nextMode: Mode) => {
     if (winner) {
@@ -346,7 +304,7 @@ export function QuoridorGame() {
             <View style={[styles.statusDot, { backgroundColor: headingColor }]} />
             <ThemedText style={[styles.statusHeading, { color: headingColor }]}>{heading}</ThemedText>
           </View>
-          {/*<ThemedText style={styles.helperText}>{helperMessage}</ThemedText>*/}
+          <ThemedText style={styles.helperText}>{helperMessage}</ThemedText>
         </View>
 
         <View style={styles.summaryRow}>
@@ -442,38 +400,6 @@ export function QuoridorGame() {
           )}
         </View>
 
-        {/*<View style={styles.boardWrapper}>*/}
-        {/*  <QuoridorBoard*/}
-        {/*    currentPlayer={currentPlayer}*/}
-        {/*    positions={positions}*/}
-        {/*    walls={walls}*/}
-        {/*    validMoves={validMoves}*/}
-        {/*    mode={mode}*/}
-        {/*    availableWalls={availableWalls}*/}
-        {/*    onCellPress={handleCellPress}*/}
-        {/*    onWallPress={handleWallPlacement}*/}
-        {/*  />*/}
-        {/*</View>*/}
-
-        {/*<Pressable*/}
-        {/*  style={[styles.resetButton, { backgroundColor: Colors[colorScheme].tint }]}*/}
-        {/*  onPress={startNewGame}>*/}
-        {/*  <ThemedText*/}
-        {/*    style={[*/}
-        {/*      styles.resetButtonText,*/}
-        {/*      { color: colorScheme === 'dark' ? '#151718' : '#fff' },*/}
-        {/*    ]}>*/}
-        {/*    Start a new game*/}
-        {/*  </ThemedText>*/}
-        {/*</Pressable>*/}
-
-        {/*<ThemedText style={styles.footerNote}>*/}
-        {/*  Every turn you must either step one space orthogonally or drop a wall segment. Walls cannot overlap or remove an*/}
-        {/*  opponent&apos;s only route to their goal row.*/}
-        {/*</ThemedText>*/}
-        {/*<ThemedText style={styles.footerNote}>*/}
-        {/*  Coordinates are shown as rows and columns to make it easy to discuss moves with a friend while you play.*/}
-        {/*</ThemedText>*/}
       </ThemedView>
     </ScrollView>
   );
@@ -483,14 +409,23 @@ export default QuoridorGame;
 
 const styles = StyleSheet.create({
   scrollContainer: {
-    paddingVertical: 4,
-    paddingHorizontal: 5,
-    paddingBottom: 32,
+    paddingHorizontal: 24,
+    paddingVertical: 36,
+    paddingBottom: 48,
+    backgroundColor: NaturePalette.background,
   },
   container: {
-    gap: 14,
-    borderRadius: 7,
-    padding: 10,
+    gap: 20,
+    borderRadius: 28,
+    padding: 24,
+    borderWidth: 1,
+    borderColor: NaturePalette.border,
+    backgroundColor: NaturePalette.surfaceGlass,
+    shadowColor: NaturePalette.focus,
+    shadowOpacity: 0.16,
+    shadowRadius: 24,
+    shadowOffset: { width: 0, height: 14 },
+    elevation: 6,
   },
   title: {
     textAlign: 'center',
@@ -499,19 +434,26 @@ const styles = StyleSheet.create({
     fontSize: 16,
     lineHeight: 22,
     textAlign: 'center',
+    color: NaturePalette.mutedText,
   },
   statusCard: {
-    borderRadius: 7,
-    paddingVertical: 6,
-    paddingHorizontal: 12,
+    borderRadius: 20,
+    paddingVertical: 12,
+    paddingHorizontal: 16,
     gap: 8,
     borderWidth: 1,
-    borderColor: 'rgb(89,87,87)',
+    borderColor: NaturePalette.border,
+    backgroundColor: NaturePalette.surfaceGlassAlt,
+    shadowColor: NaturePalette.focus,
+    shadowOpacity: 0.12,
+    shadowRadius: 16,
+    shadowOffset: { width: 0, height: 10 },
+    elevation: 4,
   },
   statusHeader: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 8,
+    gap: 10,
   },
   statusHeading: {
     fontSize: 20,
@@ -525,20 +467,22 @@ const styles = StyleSheet.create({
   helperText: {
     fontSize: 15,
     lineHeight: 22,
+    color: NaturePalette.mutedText,
   },
   summaryRow: {
     flexDirection: 'row',
-    gap: 12,
+    gap: 16,
     justifyContent: 'space-between',
   },
   playerSummary: {
     flex: 1,
     flexDirection: 'row',
     gap: 12,
-    padding: 12,
-    borderRadius: 7,
+    padding: 14,
+    borderRadius: 18,
     borderWidth: 1,
-    borderColor: 'rgb(89,87,87)',
+    borderColor: NaturePalette.border,
+    backgroundColor: NaturePalette.surfaceGlassAlt,
   },
   playerBadge: {
     width: 12,
@@ -555,6 +499,7 @@ const styles = StyleSheet.create({
   },
   playerDetail: {
     fontSize: 14,
+    color: NaturePalette.mutedText,
   },
   controlsSection: {
     gap: 12,
@@ -579,9 +524,9 @@ const styles = StyleSheet.create({
   wallOptionButton: {
     flex: 1,
     alignItems: 'center',
-    borderRadius: 7,
+    borderRadius: 14,
     borderWidth: 1,
-    paddingVertical: 8,
+    paddingVertical: 12,
     paddingHorizontal: 4,
     justifyContent: 'center',
     gap: 8,
@@ -602,10 +547,16 @@ const styles = StyleSheet.create({
     fontWeight: '600',
   },
   controlButton: {
-    paddingVertical: 10,
+    paddingVertical: 12,
     paddingHorizontal: 18,
-    borderRadius: 7,
+    borderRadius: 999,
     borderWidth: 1,
+    borderColor: NaturePalette.border,
+    shadowColor: NaturePalette.focus,
+    shadowOpacity: 0.08,
+    shadowRadius: 10,
+    shadowOffset: { width: 0, height: 6 },
+    elevation: 2,
   },
   controlButtonText: {
     fontSize: 15,
@@ -614,20 +565,6 @@ const styles = StyleSheet.create({
   wallsHint: {
     fontSize: 14,
     fontStyle: 'italic',
-  },
-  resetButton: {
-    alignSelf: 'center',
-    marginTop: 16,
-    paddingVertical: 12,
-    paddingHorizontal: 24,
-    borderRadius: 999,
-  },
-  resetButtonText: {
-    fontWeight: '600',
-    fontSize: 16,
-  },
-  footerNote: {
-    fontSize: 14,
-    lineHeight: 20,
+    color: NaturePalette.mutedText,
   },
 });

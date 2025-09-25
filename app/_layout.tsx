@@ -1,13 +1,13 @@
-import { DarkTheme, DefaultTheme, ThemeProvider } from '@react-navigation/native';
+import { DefaultTheme, ThemeProvider } from '@react-navigation/native';
 import { Stack, useRouter } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
 import { Pressable } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import 'react-native-reanimated';
 
+import { NaturePalette } from '@/constants/theme';
 import { AuthProvider } from '@/context/AuthContext';
 import { GameLobbyProvider } from '@/context/GameLobbyContext';
-import { useColorScheme } from '@/hooks/use-color-scheme';
 
 export const unstable_settings = {
   initialRouteName: 'index',
@@ -17,18 +17,29 @@ function LobbyButton() {
   const router = useRouter();
   return (
     <Pressable onPress={() => router.push('/')} style={{ marginLeft: 16 }}>
-      <Ionicons name="home" size={24} color="#007AFF" />
+      <Ionicons name="home" size={24} color={NaturePalette.accent} />
     </Pressable>
   );
 }
 
 export default function RootLayout() {
-  const colorScheme = useColorScheme();
+  const navigationTheme = {
+    ...DefaultTheme,
+    colors: {
+      ...DefaultTheme.colors,
+      primary: NaturePalette.tint,
+      background: 'transparent',
+      card: NaturePalette.surface,
+      text: NaturePalette.text,
+      border: NaturePalette.border,
+      notification: NaturePalette.accentSoft,
+    },
+  } as const;
 
   return (
     <AuthProvider>
       <GameLobbyProvider>
-        <ThemeProvider value={colorScheme === 'dark' ? DarkTheme : DefaultTheme}>
+        <ThemeProvider value={navigationTheme}>
           <Stack initialRouteName="index">
             <Stack.Screen name="index" options={{ headerShown: false }} />
             <Stack.Screen name="local-play" options={{ title: 'Local Play' }} />
@@ -40,7 +51,7 @@ export default function RootLayout() {
             <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
             <Stack.Screen name="modal" options={{ presentation: 'modal', title: 'Modal' }} />
           </Stack>
-          <StatusBar style="auto" />
+          <StatusBar style="dark" />
         </ThemeProvider>
       </GameLobbyProvider>
     </AuthProvider>
