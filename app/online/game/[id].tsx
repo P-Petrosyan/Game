@@ -47,7 +47,7 @@ export default function GameSessionScreen() {
       // Game was abandoned, delete it
       handleLeaveGame();
     }
-  }, [gameState?.players, handleLeaveGame, user]);
+  }, [gameState?.players, user]);
 
   useEffect(() => {
     if (gameState?.status === 'starting' && countdown === 0) {
@@ -64,7 +64,7 @@ export default function GameSessionScreen() {
       }, 1000);
       return () => clearInterval(timer);
     }
-  }, [countdown, gameState?.status, updateGameStatus]);
+  }, [ gameState?.status]);
 
   const playerEntries: PlayerEntry[] = useMemo(() => {
     if (!gameState?.players) {
