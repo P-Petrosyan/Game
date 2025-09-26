@@ -1,6 +1,6 @@
 import { useLocalSearchParams, useRouter } from 'expo-router';
-import { useEffect, useMemo, useState } from 'react';
-import { ActivityIndicator, Alert, Pressable, ScrollView, StyleSheet, View, ImageBackground } from 'react-native';
+import { useCallback, useEffect, useMemo, useState } from 'react';
+import { ActivityIndicator, Alert, Pressable, StyleSheet, View, ImageBackground } from 'react-native';
 
 import { ThemedText } from '@/components/themed-text';
 import { ThemedView } from '@/components/themed-view';
@@ -8,7 +8,6 @@ import { MultiplayerQuoridorGame } from '@/components/quoridor/MultiplayerQuorid
 import { Colors } from '@/constants/theme';
 import { useAuth } from '@/context/AuthContext';
 import { useGameLobby } from '@/context/GameLobbyContext';
-import { useColorScheme } from '@/hooks/use-color-scheme';
 import { useRealtimeGame } from '@/hooks/use-realtime-game';
 import { db } from '@/services/firebase';
 import { serverTimestamp, updateDoc, doc } from 'firebase/firestore';
@@ -29,8 +28,7 @@ export default function GameSessionScreen() {
   const { gameState, loading, error } = useRealtimeGame(gameId);
   const { user } = useAuth();
   const { leaveGame } = useGameLobby();
-  const colorScheme = useColorScheme() ?? 'light';
-  const accentColor = Colors[colorScheme].background;
+  const accentColor = Colors.accent;
   const [leaving, setLeaving] = useState(false);
   const [isReady, setIsReady] = useState(false);
   const [countdown, setCountdown] = useState(0);
@@ -43,7 +41,7 @@ export default function GameSessionScreen() {
 
   useEffect(() => {
     if (!gameState?.players || !user) return;
-    
+
     const playerIds = Object.keys(gameState.players);
     if (playerIds.length === 1 && playerIds[0] !== user.uid) {
       // Game was abandoned, delete it
@@ -66,12 +64,7 @@ export default function GameSessionScreen() {
       }, 1000);
       return () => clearInterval(timer);
     }
-  }, [gameState?.status]);
-
-  const currentPlayer = useMemo(() => {
-    const rawValue = (gameState?.state?.currentPlayer as string | undefined) ?? 'north';
-    return rawValue === 'south' ? 'south' : 'north';
-  }, [gameState?.state?.currentPlayer]);
+  }, [ gameState?.status]);
 
   const playerEntries: PlayerEntry[] = useMemo(() => {
     if (!gameState?.players) {
@@ -88,8 +81,6 @@ export default function GameSessionScreen() {
   }, [gameState?.players]);
 
   const isWaitingForPlayers = playerEntries.length < 2;
-  const bothPlayersReady = playerEntries.length === 2 && 
-    Object.values(gameState?.players || {}).every(p => p.ready);
   const isGameStarted = gameState?.status === 'playing';
   const isCountingDown = gameState?.status === 'starting' && countdown > 0;
 
@@ -117,25 +108,28 @@ export default function GameSessionScreen() {
           });
         }
       }
-    } catch (error) {
+    } catch {
       Alert.alert('Error', 'Failed to update ready status');
     }
   };
 
-  const updateGameStatus = async (status: string) => {
-    if (!gameId) return;
-    try {
-      const gameRef = doc(db, 'games', gameId);
-      await updateDoc(gameRef, {
-        status,
-        updatedAt: serverTimestamp(),
-      });
-    } catch (error) {
-      console.error('Failed to update game status:', error);
-    }
-  };
+  const updateGameStatus = useCallback(
+    async (status: string) => {
+      if (!gameId) return;
+      try {
+        const gameRef = doc(db, 'games', gameId);
+        await updateDoc(gameRef, {
+          status,
+          updatedAt: serverTimestamp(),
+        });
+      } catch (error) {
+        console.error('Failed to update game status:', error);
+      }
+    },
+    [gameId],
+  );
 
-  const handleLeaveGame = async () => {
+  const handleLeaveGame = useCallback(async () => {
     if (!gameId) {
       return;
     }
@@ -155,7 +149,7 @@ export default function GameSessionScreen() {
     } finally {
       setLeaving(false);
     }
-  };
+  }, [gameId, leaveGame, router, user]);
 
   if (!gameId) {
     return null;
@@ -226,7 +220,7 @@ export default function GameSessionScreen() {
                 const isPlayerReady = playerData?.ready || false;
                 return (
                   <View key={player.id} style={styles.playerRow}>
-                    <View style={[styles.playerBadge, { backgroundColor: isPlayerReady ? '#27ae60' : accentColor }]} />
+                    <View style={[styles.playerBadge, { backgroundColor: isPlayerReady ? Colors.success : accentColor }]} />
                     <ThemedText style={styles.playerName}>{player.displayName}</ThemedText>
                     <ThemedText style={styles.readyStatus}>
                       {isPlayerReady ? 'Ready' : 'Not Ready'}
@@ -248,7 +242,7 @@ export default function GameSessionScreen() {
                   onPress={handleReady}
                   style={({ pressed }) => [
                     styles.primaryButton,
-                    { backgroundColor: isReady ? 'rgba(39,174,96,0.4)' : accentColor },
+                    { backgroundColor: isReady ? 'rgba(47,143,78,0.25)' : accentColor },
                     pressed && styles.primaryButtonPressed,
                   ]}>
                   <ThemedText type="defaultSemiBold" style={styles.primaryButtonText}>
@@ -263,7 +257,7 @@ export default function GameSessionScreen() {
                 Leave match
               </ThemedText>
               <ThemedText style={styles.cardMessage}>
-                Leaving will delete the game if you're the only player.
+                Leaving will delete the game if you&apos;re the only player.
               </ThemedText>
               <Pressable
                 onPress={handleLeaveGame}
@@ -289,7 +283,7 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   overlay: {
-    backgroundColor: 'rgba(255,255,255,0.11)',
+    backgroundColor: Colors.overlay,
   },
   // scrollContainer: {
   //   flexGrow: 1,
@@ -321,31 +315,40 @@ const styles = StyleSheet.create({
     paddingHorizontal: 16,
     paddingVertical: 10,
     borderRadius: 999,
-    backgroundColor: Colors.dark.backgroundOpacity
+    backgroundColor: Colors.overlayStrong,
   },
   backButtonPressed: {
     opacity: 0.7,
   },
   header: {
     alignItems: 'center',
-    backgroundColor: Colors.light.backgroundOpacity ,
+    backgroundColor: Colors.surface,
     paddingVertical: 16,
     paddingHorizontal: 24,
     borderRadius: 16,
     gap: 8,
+    borderWidth: 1,
+    borderColor: Colors.outline,
+    shadowColor: Colors.translucentDark,
+    shadowOpacity: 0.12,
+    shadowOffset: { width: 0, height: 6 },
+    shadowRadius: 16,
+    elevation: 3,
   },
   title: {
     textAlign: 'center',
+    color: Colors.heading,
   },
   subtitle: {
     textAlign: 'center',
-    opacity: 0.8,
+    color: Colors.textMuted,
   },
   statusPill: {
     marginTop: 4,
     borderRadius: 999,
     paddingHorizontal: 12,
     paddingVertical: 4,
+    backgroundColor: Colors.translucentDark,
   },
   statusPillText: {
     color: '#fff',
@@ -358,22 +361,31 @@ const styles = StyleSheet.create({
     paddingHorizontal: 20,
     paddingVertical: 18,
     gap: 12,
-    backgroundColor: Colors.light.backgroundOpacity,
-    borderColor: 'rgba(0,0,0,0.08)',
+    backgroundColor: Colors.surface,
+    borderWidth: 1,
+    borderColor: Colors.outline,
+    shadowColor: Colors.translucentDark,
+    shadowOpacity: 0.1,
+    shadowOffset: { width: 0, height: 4 },
+    shadowRadius: 12,
+    elevation: 2,
   },
   cardHeading: {
     textAlign: 'left',
+    color: Colors.heading,
   },
   cardMessage: {
     lineHeight: 20,
+    color: Colors.text,
   },
   cardHint: {
     fontSize: 12,
-    opacity: 0.7,
+    color: Colors.textMuted,
   },
   readyStatus: {
     fontSize: 12,
     fontWeight: '600',
+    color: Colors.textMuted,
   },
   countdownContainer: {
     flex: 1,
@@ -402,30 +414,37 @@ const styles = StyleSheet.create({
   },
   playerName: {
     flex: 1,
+    color: Colors.heading,
   },
   primaryButton: {
-    backgroundColor: Colors.light.tint,
+    backgroundColor: Colors.accent,
     paddingVertical: 12,
     borderRadius: 12,
     alignItems: 'center',
+    shadowColor: Colors.translucentDark,
+    shadowOpacity: 0.18,
+    shadowOffset: { width: 0, height: 4 },
+    shadowRadius: 12,
+    elevation: 2,
   },
   primaryButtonPressed: {
     opacity: 0.8,
   },
   primaryButtonText: {
-    color: '#fff',
+    color: Colors.buttonText,
   },
   secondaryButton: {
     paddingVertical: 12,
     borderRadius: 12,
     alignItems: 'center',
     borderWidth: 1,
-    borderColor: 'rgba(0,0,0,0.15)',
+    borderColor: Colors.outline,
+    backgroundColor: Colors.surfaceMuted,
   },
   secondaryButtonPressed: {
     opacity: 0.8,
   },
   secondaryButtonText: {
-    color: '#c0392b',
+    color: Colors.danger,
   },
 });

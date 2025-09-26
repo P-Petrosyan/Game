@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { Alert, Pressable, ScrollView, StyleSheet, View } from 'react-native';
 import { doc, updateDoc, serverTimestamp, increment, getDoc, deleteDoc } from 'firebase/firestore';
 import { useRouter } from 'expo-router';
@@ -8,7 +8,6 @@ import { ThemedView } from '@/components/themed-view';
 import { Colors } from '@/constants/theme';
 import { useAuth } from '@/context/AuthContext';
 import { useGameLobby } from '@/context/GameLobbyContext';
-import { useColorScheme } from '@/hooks/use-color-scheme';
 import { useRealtimeGame } from '@/hooks/use-realtime-game';
 import { db } from '@/services/firebase';
 
@@ -37,18 +36,24 @@ export function MultiplayerQuoridorGame({ gameId }: MultiplayerQuoridorGameProps
   const { gameState } = useRealtimeGame(gameId);
   const { createGame } = useGameLobby();
   const router = useRouter();
-  const colorScheme = useColorScheme() ?? 'light';
   const [mode, setMode] = useState<'move' | 'wall' | 'drag'>('move');
   const [wallOrientation, setWallOrientation] = useState<Orientation>('horizontal');
   const [playAgainVote, setPlayAgainVote] = useState(false);
-  const [newGameId, setNewGameId] = useState('')
-  const urlParams = new URLSearchParams(window.location.search);
-  const oldGameId = urlParams.get('oldGameId');
 
   const gameData = gameState?.state as any;
-  const positions = gameData?.positions || INITIAL_POSITIONS;
-  const walls = gameData?.walls || [];
-  const wallsRemaining = gameData?.wallsRemaining || { north: MAX_WALLS_PER_PLAYER, south: MAX_WALLS_PER_PLAYER };
+  const positions = useMemo(
+    () => (gameData?.positions as Record<PlayerId, Position>) || INITIAL_POSITIONS,
+    [gameData?.positions],
+  );
+  const walls = useMemo(() => (gameData?.walls as Wall[]) || [], [gameData?.walls]);
+  const wallsRemaining = useMemo(
+    () =>
+      (gameData?.wallsRemaining as Record<PlayerId, number>) || {
+        north: MAX_WALLS_PER_PLAYER,
+        south: MAX_WALLS_PER_PLAYER,
+      },
+    [gameData?.wallsRemaining],
+  );
   const currentPlayer = gameData?.currentPlayer || 'north';
   const winner = gameData?.winner;
 
@@ -72,31 +77,37 @@ export function MultiplayerQuoridorGame({ gameId }: MultiplayerQuoridorGameProps
     return computeAvailableWalls(wallOrientation, walls, positions);
   }, [isMyTurn, mode, positions, wallOrientation, walls, wallsRemaining, winner, myPlayerSide]);
 
-  const updateGameState = async (updates: any) => {
-    if (!gameId) return;
-    try {
-      const gameRef = doc(db, 'games', gameId);
-      await updateDoc(gameRef, {
-        'state': { ...gameData, ...updates },
-        updatedAt: serverTimestamp(),
-      });
-    } catch (error) {
-      Alert.alert('Error', 'Failed to update game');
-    }
-  };
+  const updateGameState = useCallback(
+    async (updates: any) => {
+      if (!gameId) return;
+      try {
+        const gameRef = doc(db, 'games', gameId);
+        await updateDoc(gameRef, {
+          state: { ...gameData, ...updates },
+          updatedAt: serverTimestamp(),
+        });
+      } catch {
+        Alert.alert('Error', 'Failed to update game');
+      }
+    },
+    [gameData, gameId],
+  );
 
-  const updateGame = async (updates: any) => {
-    if (!gameId) return;
-    try {
-      const gameRef = doc(db, 'games', gameId);
-      await updateDoc(gameRef, {
-        ...updates, // ✅ apply updates at root level
-        updatedAt: serverTimestamp(),
-      });
-    } catch (error) {
-      Alert.alert('Error', 'Failed to update game');
-    }
-  };
+  const updateGame = useCallback(
+    async (updates: any) => {
+      if (!gameId) return;
+      try {
+        const gameRef = doc(db, 'games', gameId);
+        await updateDoc(gameRef, {
+          ...updates,
+          updatedAt: serverTimestamp(),
+        });
+      } catch {
+        Alert.alert('Error', 'Failed to update game');
+      }
+    },
+    [gameId],
+  );
 
   const handleCellPress = async (target: Position) => {
     if (!isMyTurn || winner || mode !== 'move') return;
@@ -149,7 +160,7 @@ export function MultiplayerQuoridorGame({ gameId }: MultiplayerQuoridorGameProps
   // Handle opponent leaving
   useEffect(() => {
     if (!gameState?.playerIds || !user || playerIds.length !== 2) return;
-    
+
     const currentPlayers = Object.keys(gameState.players || {});
     if (currentPlayers.length === 1 && currentPlayers.includes(user.uid)) {
       if (!winner && gameState.status === 'playing') {
@@ -166,7 +177,7 @@ export function MultiplayerQuoridorGame({ gameId }: MultiplayerQuoridorGameProps
         updatePlayerStats(user.uid, true);
       }
     }
-  }, [gameState?.players, gameState?.playerIds, winner, myPlayerSide, gameState?.status]);
+  }, [gameId, gameState?.playerIds, gameState?.players, gameState?.status, myPlayerSide, playerIds.length, updateGameState, updatePlayerStats, user, winner]);
 
   // new game redirection for Play Again
   useEffect(() => {
@@ -174,7 +185,7 @@ export function MultiplayerQuoridorGame({ gameId }: MultiplayerQuoridorGameProps
     if (gameState?.newGameId && winner) {
       router.replace(`/online/game/${gameState.newGameId}?oldGameId=${gameId}`);
     }
-  }, [gameState?.newGameId]);
+  }, [gameId, gameState?.newGameId, router, winner]);
 
   // Clean up old game if redirected from previous game
   useEffect(() => {
@@ -192,7 +203,7 @@ export function MultiplayerQuoridorGame({ gameId }: MultiplayerQuoridorGameProps
     return () => clearTimeout(deleteGame);
   }, [gameState?.oldGameId]);
 
-  const updatePlayerStats = async (playerId: string, isWinner: boolean) => {
+  const updatePlayerStats = useCallback(async (playerId: string, isWinner: boolean) => {
     try {
       const userRef = doc(db, 'users', playerId);
       const points = isWinner ? 100 : 10;
@@ -215,7 +226,7 @@ export function MultiplayerQuoridorGame({ gameId }: MultiplayerQuoridorGameProps
     } catch (error) {
       console.error('Failed to update player stats:', error);
     }
-  };
+  }, []);
 
   const handleSurrender = async () => {
     Alert.alert(
@@ -296,12 +307,13 @@ export function MultiplayerQuoridorGame({ gameId }: MultiplayerQuoridorGameProps
     deleteDoc(doc(db, 'games', gameId));
   };
 
-  const playerColors = useMemo(() => {
-    if (colorScheme === 'dark') {
-      return { north: '#2c3e50', south: '#c0392b' };
-    }
-    return { north: '#2c3e50', south: '#c0392b' };
-  }, [colorScheme]);
+  const playerColors = useMemo(
+    () => ({
+      north: Colors.board.pawnNorth,
+      south: Colors.board.pawnSouth,
+    }),
+    [],
+  );
 
   const myPlayerName = gameState?.players?.[myPlayerId || '']?.displayName || 'You';
   const opponentName = gameState?.players?.[opponentId || '']?.displayName || 'Opponent';
@@ -368,13 +380,21 @@ export function MultiplayerQuoridorGame({ gameId }: MultiplayerQuoridorGameProps
                   <Pressable
                     onPress={() => setMode('move')}
                     style={[styles.controlButton, mode === 'move' && styles.activeButton]}>
-                    <ThemedText style={styles.controlButtonText}>Move</ThemedText>
+                    <ThemedText
+                      style={[styles.controlButtonText, mode === 'move' && styles.controlButtonTextActive]}
+                    >
+                      Move
+                    </ThemedText>
                   </Pressable>
                   <Pressable
                     onPress={() => setMode('wall')}
                     disabled={wallsRemaining[myPlayerSide] <= 0}
                     style={[styles.controlButton, mode === 'wall' && styles.activeButton]}>
-                    <ThemedText style={styles.controlButtonText}>Wall</ThemedText>
+                    <ThemedText
+                      style={[styles.controlButtonText, mode === 'wall' && styles.controlButtonTextActive]}
+                    >
+                      Wall
+                    </ThemedText>
                   </Pressable>
                 </View>
                 {mode === 'wall' && (
@@ -382,12 +402,26 @@ export function MultiplayerQuoridorGame({ gameId }: MultiplayerQuoridorGameProps
                     <Pressable
                       onPress={() => setWallOrientation('horizontal')}
                       style={[styles.orientationButton, wallOrientation === 'horizontal' && styles.activeButton]}>
-                      <ThemedText style={styles.controlButtonText}>Horizontal</ThemedText>
+                      <ThemedText
+                        style={[
+                          styles.controlButtonText,
+                          wallOrientation === 'horizontal' && styles.controlButtonTextActive,
+                        ]}
+                      >
+                        Horizontal
+                      </ThemedText>
                     </Pressable>
                     <Pressable
                       onPress={() => setWallOrientation('vertical')}
                       style={[styles.orientationButton, wallOrientation === 'vertical' && styles.activeButton]}>
-                      <ThemedText style={styles.controlButtonText}>Vertical</ThemedText>
+                      <ThemedText
+                        style={[
+                          styles.controlButtonText,
+                          wallOrientation === 'vertical' && styles.controlButtonTextActive,
+                        ]}
+                      >
+                        Vertical
+                      </ThemedText>
                     </Pressable>
                   </View>
                 )}
@@ -407,7 +441,9 @@ export function MultiplayerQuoridorGame({ gameId }: MultiplayerQuoridorGameProps
               <Pressable
                 onPress={handlePlayAgain}
                 style={[styles.playAgainButton, myVote && styles.activeButton]}>
-                <ThemedText style={styles.controlButtonText}>
+                <ThemedText
+                  style={[styles.controlButtonText, myVote && styles.controlButtonTextActive]}
+                >
                   {myVote ? '✓ Play Again' : 'Play Again'}
                 </ThemedText>
               </Pressable>
@@ -436,17 +472,26 @@ const styles = StyleSheet.create({
     paddingBottom: 32,
   },
   container: {
-    gap: 14,
-    borderRadius: 7,
-    padding: 10,
+    gap: 16,
+    borderRadius: 20,
+    padding: 20,
+    backgroundColor: Colors.surface,
+    borderWidth: 1,
+    borderColor: Colors.outline,
+    shadowColor: Colors.translucentDark,
+    shadowOpacity: 0.12,
+    shadowOffset: { width: 0, height: 6 },
+    shadowRadius: 16,
+    elevation: 3,
   },
   statusCard: {
-    borderRadius: 7,
-    paddingVertical: 6,
-    paddingHorizontal: 12,
+    borderRadius: 16,
+    paddingVertical: 12,
+    paddingHorizontal: 16,
     gap: 8,
+    backgroundColor: Colors.surfaceMuted,
     borderWidth: 1,
-    borderColor: 'rgb(89,87,87)',
+    borderColor: Colors.outline,
   },
   statusHeader: {
     flexDirection: 'row',
@@ -456,6 +501,7 @@ const styles = StyleSheet.create({
   statusHeading: {
     fontSize: 20,
     fontWeight: '600',
+    color: Colors.heading,
   },
   statusDot: {
     width: 14,
@@ -471,10 +517,11 @@ const styles = StyleSheet.create({
     flex: 1,
     flexDirection: 'row',
     gap: 12,
-    padding: 12,
-    borderRadius: 7,
+    padding: 14,
+    borderRadius: 14,
     borderWidth: 1,
-    borderColor: 'rgb(89,87,87)',
+    borderColor: Colors.outline,
+    backgroundColor: Colors.surfaceMuted,
   },
   playerBadge: {
     width: 12,
@@ -484,9 +531,11 @@ const styles = StyleSheet.create({
   playerName: {
     fontSize: 16,
     fontWeight: '600',
+    color: Colors.heading,
   },
   wallCount: {
     fontSize: 14,
+    color: Colors.textMuted,
   },
   boardWrapper: {
     width: '100%',
@@ -507,46 +556,58 @@ const styles = StyleSheet.create({
     flex: 1,
     paddingVertical: 10,
     paddingHorizontal: 18,
-    borderRadius: 7,
+    borderRadius: 999,
     borderWidth: 1,
-    borderColor: 'rgba(0,0,0,0.2)',
+    borderColor: Colors.outline,
+    backgroundColor: Colors.surface,
+    shadowColor: Colors.translucentDark,
+    shadowOpacity: 0.08,
+    shadowOffset: { width: 0, height: 3 },
+    shadowRadius: 6,
+    elevation: 1,
     alignItems: 'center',
   },
   orientationButton: {
     flex: 1,
     paddingVertical: 8,
     paddingHorizontal: 12,
-    borderRadius: 7,
+    borderRadius: 12,
     borderWidth: 1,
-    borderColor: 'rgba(0,0,0,0.2)',
+    borderColor: Colors.outline,
+    backgroundColor: Colors.surface,
     alignItems: 'center',
   },
   activeButton: {
-    backgroundColor: '#f39c12',
-    borderColor: '#f39c12',
+    backgroundColor: Colors.accent,
+    borderColor: Colors.accent,
   },
   controlButtonText: {
     fontSize: 15,
     fontWeight: '600',
+    color: Colors.text,
+  },
+  controlButtonTextActive: {
+    color: Colors.buttonText,
   },
   winMessage: {
     textAlign: 'center',
     fontSize: 16,
     fontWeight: '600',
     marginTop: 4,
+    color: Colors.heading,
   },
   surrenderButton: {
     paddingVertical: 8,
     paddingHorizontal: 16,
     borderRadius: 8,
-    backgroundColor: 'rgba(192, 57, 43, 0.1)',
+    backgroundColor: 'rgba(192, 74, 58, 0.12)',
     borderWidth: 1,
-    borderColor: '#c0392b',
+    borderColor: Colors.danger,
     alignItems: 'center',
     marginTop: 8,
   },
   surrenderText: {
-    color: '#c0392b',
+    color: Colors.danger,
     fontSize: 14,
     fontWeight: '600',
   },
@@ -562,8 +623,8 @@ const styles = StyleSheet.create({
     paddingVertical: 12,
     borderRadius: 10,
     borderWidth: 1,
-    borderColor: '#27ae60',
-    backgroundColor: 'rgba(39, 174, 96, 0.1)',
+    borderColor: Colors.success,
+    backgroundColor: 'rgba(47, 143, 78, 0.12)',
     alignItems: 'center',
   },
   leaveButton: {
@@ -571,17 +632,19 @@ const styles = StyleSheet.create({
     paddingVertical: 12,
     borderRadius: 10,
     borderWidth: 1,
-    borderColor: 'rgba(0,0,0,0.2)',
+    borderColor: Colors.outline,
+    backgroundColor: Colors.surface,
     alignItems: 'center',
   },
   leaveButtonText: {
     fontSize: 15,
     fontWeight: '600',
+    color: Colors.text,
   },
   voteStatus: {
     textAlign: 'center',
     fontSize: 14,
     fontStyle: 'italic',
-    // opacity: 0.8,
+    color: Colors.textMuted,
   },
 });

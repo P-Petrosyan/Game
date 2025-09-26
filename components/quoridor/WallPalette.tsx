@@ -1,6 +1,8 @@
 import React from 'react';
-import { View, StyleSheet, Pressable, PanResponder } from 'react-native';
+import { View, StyleSheet, Pressable } from 'react-native';
+
 import { ThemedText } from '@/components/themed-text';
+import { Colors } from '@/constants/theme';
 
 import { Orientation } from './game-logic';
 
@@ -49,14 +51,17 @@ export function WallPalette({ wallsRemaining, onWallSelect, selectedOrientation,
 const styles = StyleSheet.create({
   palette: {
     padding: 16,
-    backgroundColor: 'rgba(0,0,0,0.05)',
-    borderRadius: 12,
+    backgroundColor: Colors.surface,
+    borderRadius: 16,
     gap: 12,
+    borderWidth: 1,
+    borderColor: Colors.outline,
   },
   title: {
     fontSize: 16,
     fontWeight: '600',
     textAlign: 'center',
+    color: Colors.heading,
   },
   wallsContainer: {
     flexDirection: 'row',
@@ -65,19 +70,24 @@ const styles = StyleSheet.create({
   },
   wallItem: {
     padding: 12,
-    borderRadius: 8,
-    backgroundColor: 'rgba(104,102,102,0.92)',
+    borderRadius: 12,
+    backgroundColor: Colors.surfaceMuted,
     alignItems: 'center',
     gap: 8,
-    borderWidth: 2,
-    borderColor: 'transparent',
+    borderWidth: 1,
+    borderColor: Colors.outline,
+    shadowColor: Colors.translucentDark,
+    shadowOpacity: 0.08,
+    shadowOffset: { width: 0, height: 3 },
+    shadowRadius: 6,
+    elevation: 1,
   },
   selectedWallItem: {
-    borderColor: '#f39c12',
-    backgroundColor: 'rgba(243, 156, 18, 0.1)',
+    borderColor: Colors.accent,
+    backgroundColor: Colors.accentSoft,
   },
   wall: {
-    backgroundColor: '#8B4513',
+    backgroundColor: Colors.board.wall,
     borderRadius: 2,
   },
   horizontalWall: {
@@ -91,5 +101,6 @@ const styles = StyleSheet.create({
   wallLabel: {
     fontSize: 12,
     fontWeight: '500',
+    color: Colors.heading,
   },
 });

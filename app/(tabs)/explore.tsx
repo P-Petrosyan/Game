@@ -5,11 +5,12 @@ import { ThemedText } from '@/components/themed-text';
 import { ThemedView } from '@/components/themed-view';
 import { Collapsible } from '@/components/ui/collapsible';
 import { IconSymbol } from '@/components/ui/icon-symbol';
+import { Colors } from '@/constants/theme';
 
 export default function RulesScreen() {
   return (
     <ParallaxScrollView
-      headerBackgroundColor={{ light: '#f9e8cc', dark: '#2b1b0f' }}
+      headerBackgroundColor={Colors.accentSoft}
       headerImage={<IconSymbol size={280} name="gamecontroller.fill" color="#f2a65a" style={styles.headerIcon} />}>
       <ThemedView style={styles.titleRow}>
         <ThemedText type="title">How to play Quoridor</ThemedText>
