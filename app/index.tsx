@@ -6,6 +6,7 @@ import { ThemedText } from '@/components/themed-text';
 import { ThemedView } from '@/components/themed-view';
 import { Colors } from '@/constants/theme';
 import { useAuth } from '@/context/AuthContext';
+import { useUserStats } from '@/hooks/use-user-stats';
 
 const actions = [
   {
@@ -64,7 +65,7 @@ function HomeActionButton({ action, onPress, locked }: HomeActionButtonProps) {
 export default function HomeScreen() {
   const router = useRouter();
   const { user, logout, initializing } = useAuth();
-  const [signingOut, setSigningOut] = useState(false);
+  const { stats, loading: statsLoading } = useUserStats();
 
   const handleAction = (action: Action) => {
     if (action.requiresAuth && !user) {
@@ -75,22 +76,13 @@ export default function HomeScreen() {
     router.push(action.route);
   };
 
-  const handleSignOut = async () => {
-    setSigningOut(true);
-    try {
-      await logout();
-    } finally {
-      setSigningOut(false);
-    }
-  };
-
   return (
     <ImageBackground
       source={require('@/assets/backgrounds/homeScreen.webp')}
       style={styles.backgroundImage}
       resizeMode="cover"
     >
-      <ScrollView contentContainerStyle={styles.scrollContainer}>
+      {/*<ScrollView contentContainerStyle={styles.scrollContainer}>*/}
         <ThemedView style={[styles.container, styles.overlay]}>
         <View style={styles.content}>
           <View style={styles.header}>
@@ -102,59 +94,63 @@ export default function HomeScreen() {
             {/*</ThemedText>*/}
           </View>
           <View style={styles.authCard}>
-            <ThemedText type="subtitle" style={styles.authHeading}>
-              {initializing ? 'Checking session…' : user ? `Welcome, ${user.displayName ?? user.email}` : 'You are not signed in'}
-            </ThemedText>
-            <ThemedText style={styles.authMessage}>
-              {user
-                ? 'Access your online lobby, create new rooms, and sync moves across devices.'
-                : 'Create an account or sign in to host online matches.'}
-            </ThemedText>
-            <View style={styles.authButtonsRow}>
-              {user ? (
+            <View style={styles.authHeader}>
+              <ThemedText type="subtitle" style={styles.authHeading}>
+                {initializing ? 'Checking session…' : user ? `${user.displayName ?? user.email}` : 'You are not signed in'}
+              </ThemedText>
+              {user && (
+                <Pressable
+                  onPress={() => router.push('/profile')}
+                  style={styles.profileButton}>
+                  <ThemedText style={styles.profileText}>Profile</ThemedText>
+                </Pressable>
+              )}
+            </View>
+            {user ? (
+              <View style={styles.statsGrid}>
+                <View style={styles.statItem}>
+                  <ThemedText style={styles.statValue}>{statsLoading ? '...' : stats?.level || 1}</ThemedText>
+                  <ThemedText style={styles.statLabel}>Level</ThemedText>
+                </View>
+                <View style={styles.statItem}>
+                  <ThemedText style={styles.statValue}>{statsLoading ? '...' : stats?.points || 0}</ThemedText>
+                  <ThemedText style={styles.statLabel}>Points</ThemedText>
+                </View>
+                <View style={styles.statItem}>
+                  <ThemedText style={styles.statValue}>{statsLoading ? '...' : stats?.gamesPlayed || 0}</ThemedText>
+                  <ThemedText style={styles.statLabel}>Games</ThemedText>
+                </View>
+                <View style={styles.statItem}>
+                  <ThemedText style={styles.statValue}>{statsLoading ? '...' : stats?.wins || 0}</ThemedText>
+                  <ThemedText style={styles.statLabel}>Wins</ThemedText>
+                </View>
+              </View>
+            ) : (
+              <View style={styles.authButtonsRow}>
                 <Pressable
                   accessibilityRole="button"
-                  onPress={handleSignOut}
-                  disabled={signingOut}
+                  onPress={() => router.push('/auth/login')}
                   style={({ pressed }) => [
                     styles.authButton,
                     pressed && styles.authButtonPressed,
                   ]}>
-                  {signingOut ? (
-                    <ActivityIndicator />
-                  ) : (
-                    <ThemedText type="defaultSemiBold" style={styles.authButtonText}>
-                      Sign out
-                    </ThemedText>
-                  )}
+                  <ThemedText type="defaultSemiBold" style={styles.authButtonText}>
+                    Sign in
+                  </ThemedText>
                 </Pressable>
-              ) : (
-                <>
-                  <Pressable
-                    accessibilityRole="button"
-                    onPress={() => router.push('/auth/login')}
-                    style={({ pressed }) => [
-                      styles.authButton,
-                      pressed && styles.authButtonPressed,
-                    ]}>
-                    <ThemedText type="defaultSemiBold" style={styles.authButtonText}>
-                      Sign in
-                    </ThemedText>
-                  </Pressable>
-                  <Pressable
-                    accessibilityRole="button"
-                    onPress={() => router.push('/auth/register')}
-                    style={({ pressed }) => [
-                      styles.authButton,
-                      pressed && styles.authButtonPressed,
-                    ]}>
-                    <ThemedText type="defaultSemiBold" style={styles.authButtonText}>
-                      Create account
-                    </ThemedText>
-                  </Pressable>
-                </>
-              )}
-            </View>
+                <Pressable
+                  accessibilityRole="button"
+                  onPress={() => router.push('/auth/register')}
+                  style={({ pressed }) => [
+                    styles.authButton,
+                    pressed && styles.authButtonPressed,
+                  ]}>
+                  <ThemedText type="defaultSemiBold" style={styles.authButtonText}>
+                    Create account
+                  </ThemedText>
+                </Pressable>
+              </View>
+            )}
           </View>
 
           <View style={styles.actions}>
@@ -199,7 +195,7 @@ export default function HomeScreen() {
           {/*</View>*/}
         </View>
         </ThemedView>
-      </ScrollView>
+      {/*</ScrollView>*/}
     </ImageBackground>
   );
 }
@@ -210,17 +206,18 @@ const styles = StyleSheet.create({
   },
   overlay: {
     backgroundColor: Colors.overlay,
+    borderRadius:16,
   },
-  scrollContainer: {
-    paddingVertical: 4,
-    paddingHorizontal: 5,
-    paddingBottom: 32,
-  },
+  // scrollContainer: {
+  //   paddingVertical: 4,
+  //   paddingHorizontal: 5,
+  //   paddingBottom: 32,
+  // },
   container: {
     flex: 1,
   },
   content: {
-    flex: 1,
+    // flex: 1,
     paddingHorizontal: 24,
     paddingTop: 64,
     paddingBottom: 48,
@@ -285,15 +282,31 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: Colors.outline,
     shadowColor: Colors.translucentDark,
-    shadowOpacity: 0.12,
+    shadowOpacity: 0.42,
     shadowOffset: { width: 0, height: 6 },
     shadowRadius: 16,
     elevation: 3,
+  },
+  authHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
   },
   authHeading: {
     textAlign: 'left',
     fontSize: 16,
     color: Colors.heading,
+  },
+  profileButton: {
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    backgroundColor: Colors.accent,
+    borderRadius: 6,
+  },
+  profileText: {
+    fontSize: 12,
+    color: Colors.buttonText,
+    fontWeight: '600',
   },
   authMessage: {
     lineHeight: 20,
@@ -321,6 +334,31 @@ const styles = StyleSheet.create({
   },
   authButtonPressed: {
     opacity: 0.85,
+  },
+  statsGrid: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    gap: 12,
+  },
+  statItem: {
+    flex: 1,
+    alignItems: 'center',
+    paddingVertical: 8,
+    paddingHorizontal: 4,
+    backgroundColor: Colors.surfaceMuted,
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: Colors.outline,
+  },
+  statValue: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: Colors.accent,
+  },
+  statLabel: {
+    fontSize: 10,
+    color: Colors.textMuted,
+    marginTop: 2,
   },
   itemsCard: {
     borderRadius: 7,

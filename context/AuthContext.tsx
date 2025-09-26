@@ -80,12 +80,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         email: credential.user.email,
         displayName: credential.user.displayName ?? null,
         lastLoginAt: serverTimestamp(),
-        stats: {
-          points: 0,
-          level: 1,
-          gamesPlayed: 0,
-          wins: 0,
-        },
       },
       { merge: true },
     );

@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useMemo, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useState, useRef } from 'react';
 import { Alert, Pressable, ScrollView, StyleSheet, View } from 'react-native';
 import { doc, updateDoc, serverTimestamp, increment, getDoc, deleteDoc } from 'firebase/firestore';
 import { useRouter } from 'expo-router';
@@ -39,6 +39,9 @@ export function MultiplayerQuoridorGame({ gameId }: MultiplayerQuoridorGameProps
   const [mode, setMode] = useState<'move' | 'wall' | 'drag'>('move');
   const [wallOrientation, setWallOrientation] = useState<Orientation>('horizontal');
   const [playAgainVote, setPlayAgainVote] = useState(false);
+  const [turnTimer, setTurnTimer] = useState(30);
+  const timerRef = useRef<NodeJS.Timeout | null>(null);
+  const lastTurnChangeRef = useRef<number>(Date.now());
 
   const gameData = gameState?.state as any;
   const positions = useMemo(
@@ -177,7 +180,7 @@ export function MultiplayerQuoridorGame({ gameId }: MultiplayerQuoridorGameProps
         updatePlayerStats(user.uid, true);
       }
     }
-  }, [gameId, gameState?.playerIds, gameState?.players, gameState?.status, myPlayerSide, playerIds.length, updateGameState, updatePlayerStats, user, winner]);
+  }, [gameId, gameState?.playerIds, gameState?.players, gameState?.status, myPlayerSide, playerIds.length, updateGameState, user, winner]);
 
   // new game redirection for Play Again
   useEffect(() => {
@@ -202,6 +205,53 @@ export function MultiplayerQuoridorGame({ gameId }: MultiplayerQuoridorGameProps
 
     return () => clearTimeout(deleteGame);
   }, [gameState?.oldGameId]);
+
+  // Timer effect - runs for all players
+  useEffect(() => {
+    if (winner) {
+      if (timerRef.current) {
+        clearInterval(timerRef.current);
+        timerRef.current = null;
+      }
+      return;
+    }
+
+    // Reset timer when turn changes
+    const currentTime = Date.now();
+    if (currentTime - lastTurnChangeRef.current > 500) { // Debounce turn changes
+      setTurnTimer(30);
+      lastTurnChangeRef.current = currentTime;
+    }
+
+    timerRef.current = setInterval(() => {
+      setTurnTimer(prev => {
+        if (prev <= 1) {
+          // Time's up - current player loses
+          updateGameState({
+            winner: getOpponent(currentPlayer),
+            gameEndReason: 'timeout',
+            status: 'completed',
+          });
+          if (currentPlayer === myPlayerSide) {
+            updatePlayerStats(opponentId, true);
+            updatePlayerStats(user.uid, false);
+          } else {
+            updatePlayerStats(user.uid, true);
+            updatePlayerStats(opponentId, false);
+          }
+          return 0;
+        }
+        return prev - 1;
+      });
+    }, 1000);
+
+    return () => {
+      if (timerRef.current) {
+        clearInterval(timerRef.current);
+        timerRef.current = null;
+      }
+    };
+  }, [winner, currentPlayer, isMyTurn]);
 
   const updatePlayerStats = useCallback(async (playerId: string, isWinner: boolean) => {
     try {
@@ -228,7 +278,19 @@ export function MultiplayerQuoridorGame({ gameId }: MultiplayerQuoridorGameProps
     }
   }, []);
 
-  const handleSurrender = async () => {
+  const handleSurrender = async (timeOut = false) => {
+    if (timeOut) {
+      await updateGameState({
+        winner: getOpponent(myPlayerSide),
+        gameEndReason: 'timeout',
+      });
+      if (opponentId) {
+        updatePlayerStats(opponentId, true);
+        updatePlayerStats(user.uid, false);
+      }
+      return;
+    }
+
     Alert.alert(
       'Surrender Game',
       'Are you sure you want to surrender? Your opponent will win.',
@@ -322,17 +384,35 @@ export function MultiplayerQuoridorGame({ gameId }: MultiplayerQuoridorGameProps
   const opponentVote = gameState?.playAgainVotes?.[opponentId || ""];
 
   return (
-    <ScrollView contentContainerStyle={styles.scrollContainer}>
+    // <ScrollView contentContainerStyle={styles.scrollContainer}>
       <ThemedView style={styles.container}>
         <View style={styles.statusCard}>
           <View style={styles.statusHeader}>
-            <View style={[styles.statusDot, { backgroundColor: playerColors[currentPlayer] }]} />
-            <ThemedText style={[styles.statusHeading, { color: playerColors[currentPlayer] }]}>
-              {winner 
-                ? `${winner === myPlayerSide ? myPlayerName : opponentName} wins!`
-                : `${isMyTurn ? 'Your' : `${opponentName}'s`} turn`
-              }
-            </ThemedText>
+            <View style={styles.statusHeaderTurn}>
+              <View style={[styles.statusDot, { backgroundColor: playerColors[currentPlayer] }]} />
+              <ThemedText style={[styles.statusHeading, { color: playerColors[currentPlayer] }, ]}>
+                {winner
+                  ? `${winner === myPlayerSide ? myPlayerName : opponentName} wins!`
+                  : `${isMyTurn ? 'Your' : `${opponentName}'s`} turn`
+                }
+              </ThemedText>
+              {!winner && (
+                <View style={styles.timerContainer}>
+                  <ThemedText style={[styles.timerText, turnTimer <= 10 && styles.timerWarning]}>
+                    {turnTimer}
+                  </ThemedText>
+                </View>
+              )}
+            </View>
+            {!winner && (
+              <View>
+                <Pressable
+                  onPress={() => handleSurrender(false)}
+                  style={styles.surrenderButton}>
+                  <ThemedText style={styles.surrenderText}>🏳️ Leave</ThemedText>
+                </Pressable>
+              </View>
+            )}
           </View>
           {winner && (
             <ThemedText style={styles.winMessage}>
@@ -427,11 +507,6 @@ export function MultiplayerQuoridorGame({ gameId }: MultiplayerQuoridorGameProps
                 )}
               </>
             )}
-            <Pressable
-              onPress={handleSurrender}
-              style={styles.surrenderButton}>
-              <ThemedText style={styles.surrenderText}>🏳️ Surrender</ThemedText>
-            </Pressable>
           </View>
         )}
 
@@ -461,7 +536,7 @@ export function MultiplayerQuoridorGame({ gameId }: MultiplayerQuoridorGameProps
           </View>
         )}
       </ThemedView>
-    </ScrollView>
+    // </ScrollView>
   );
 }
 
@@ -495,11 +570,18 @@ const styles = StyleSheet.create({
   },
   statusHeader: {
     flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    gap: 8,
+  },
+  statusHeaderTurn: {
+    flexDirection: 'row',
     alignItems: 'center',
     gap: 8,
   },
   statusHeading: {
-    fontSize: 20,
+    maxWidth: 140,
+    fontSize: 18,
     fontWeight: '600',
     color: Colors.heading,
   },
@@ -597,14 +679,12 @@ const styles = StyleSheet.create({
     color: Colors.heading,
   },
   surrenderButton: {
-    paddingVertical: 8,
-    paddingHorizontal: 16,
-    borderRadius: 8,
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    borderRadius: 12,
     backgroundColor: 'rgba(192, 74, 58, 0.12)',
     borderWidth: 1,
     borderColor: Colors.danger,
-    alignItems: 'center',
-    marginTop: 8,
   },
   surrenderText: {
     color: Colors.danger,
@@ -646,5 +726,21 @@ const styles = StyleSheet.create({
     fontSize: 14,
     fontStyle: 'italic',
     color: Colors.textMuted,
+  },
+  timerContainer: {
+    backgroundColor: Colors.surfaceMuted,
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: Colors.outline,
+  },
+  timerText: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: Colors.text,
+  },
+  timerWarning: {
+    color: Colors.danger,
   },
 });

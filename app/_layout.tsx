@@ -41,12 +41,13 @@ export default function RootLayout() {
         <ThemeProvider value={navigationTheme}>
           <Stack initialRouteName="index">
             <Stack.Screen name="index" options={{ headerShown: false }} />
-            <Stack.Screen name="local-play" options={{ title: 'Local Play' }} />
+            <Stack.Screen name="local-play" options={{ title: 'Local Play', headerLeft: () => <LobbyButton />}} />
             <Stack.Screen name="online/index" options={{ title: 'Online Games', headerLeft: () => <LobbyButton /> }} />
             <Stack.Screen name="online/create" options={{ title: 'Create Game', headerLeft: () => <LobbyButton /> }} />
             <Stack.Screen name="online/game/[id]" options={{ title: 'Online Match', headerShown: false }} />
             <Stack.Screen name="auth/login" options={{ title: 'Sign in' }} />
             <Stack.Screen name="auth/register" options={{ title: 'Create account' }} />
+            <Stack.Screen name="profile" options={{ title: 'Profile', headerLeft: () => <LobbyButton /> }} />
             <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
             <Stack.Screen name="modal" options={{ presentation: 'modal', title: 'Modal' }} />
           </Stack>

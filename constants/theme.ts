@@ -10,7 +10,7 @@ export const Colors = {
   backgroundStrong: 'rgba(234, 214, 188, 0.9)',
   surface: 'rgba(247, 236, 220, 0.88)',
   surfaceMuted: 'rgba(232, 209, 177, 0.75)',
-  overlay: 'rgba(246, 233, 214, 0.62)',
+  overlay: 'rgba(246, 233, 214, 0.42)',
   overlayStrong: 'rgba(219, 196, 162, 0.65)',
   translucentDark: 'rgba(37, 23, 14, 0.35)',
   text: '#2d1b10',

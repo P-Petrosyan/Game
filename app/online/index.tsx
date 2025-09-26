@@ -36,7 +36,7 @@ function GameListItem({ name, players, maxPlayers, status, isPrivate, onPress, d
         {isPrivate && <ThemedText style={styles.privateFlag}>🔒 Private</ThemedText>}
       </View>
       <ThemedText style={styles.gamePlayers}>{players >= maxPlayers ? 'Full' : `${players}/${maxPlayers} players`}</ThemedText>
-      {status ? <ThemedText style={styles.gameStatus}>{status}</ThemedText> : null}
+      {/*{status ? <ThemedText style={styles.gameStatus}>{status}</ThemedText> : null}*/}
     </Pressable>
   );
 }
@@ -92,7 +92,7 @@ export default function OnlineGamesScreen() {
           Game Lobby
         </ThemedText>
         <ThemedText style={styles.description}>
-          Pick a game from the list to join or create your own room.
+          Pick a game from the list to join or
         </ThemedText>
         <Pressable
           onPress={() => router.push('/online/create')}
@@ -147,10 +147,10 @@ const styles = StyleSheet.create({
     paddingHorizontal: 24,
     paddingTop: 24,
     paddingBottom: 16,
-    gap: 24,
+    gap: 16,
   },
   header: {
-    gap: 12,
+    gap: 10,
     backgroundColor: Colors.surface,
     paddingHorizontal: 20,
     paddingVertical: 18,
@@ -158,7 +158,7 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: Colors.outline,
     shadowColor: Colors.translucentDark,
-    shadowOpacity: 0.12,
+    shadowOpacity: 0.32,
     shadowOffset: { width: 0, height: 6 },
     shadowRadius: 16,
     elevation: 3,
@@ -191,7 +191,7 @@ const styles = StyleSheet.create({
     color: Colors.buttonText,
   },
   listContent: {
-    gap: 16,
+    gap: 10,
     paddingBottom: 24,
   },
   emptyListContent: {
@@ -206,7 +206,7 @@ const styles = StyleSheet.create({
     backgroundColor: Colors.surface,
     borderRadius: 16,
     paddingHorizontal: 20,
-    paddingVertical: 18,
+    paddingVertical: 8,
     borderWidth: 1,
     borderColor: Colors.outline,
     shadowColor: Colors.translucentDark,
@@ -228,7 +228,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   gameTitle: {
-    fontSize: 18,
+    fontSize: 14,
     textAlign: 'left',
     flex: 1,
     color: Colors.heading,

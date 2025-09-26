@@ -10,7 +10,7 @@ import { useAuth } from '@/context/AuthContext';
 import { useGameLobby } from '@/context/GameLobbyContext';
 import { useRealtimeGame } from '@/hooks/use-realtime-game';
 import { db } from '@/services/firebase';
-import { serverTimestamp, updateDoc, doc } from 'firebase/firestore';
+import {serverTimestamp, updateDoc, doc, deleteDoc} from 'firebase/firestore';
 
 type RouteParams = {
   id?: string;
@@ -48,6 +48,21 @@ export default function GameSessionScreen() {
       handleLeaveGame();
     }
   }, [gameState?.players, user]);
+
+  useEffect(() => {
+    if (!gameState?.oldGameId) return;
+    const deleteGame = setTimeout(async () => {
+      try {
+        // @ts-ignore
+        await deleteDoc(doc(db, 'games', gameState?.oldGameId));
+        console.log('Deleted game:', gameState?.oldGameId);
+      } catch (error) {
+        console.error('Failed to delete game:', error);
+      }
+    }, 1000) ;
+
+    return () => clearTimeout(deleteGame);
+  }, [gameState?.oldGameId]);
 
   useEffect(() => {
     if (gameState?.status === 'starting' && countdown === 0) {
