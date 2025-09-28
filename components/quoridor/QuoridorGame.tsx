@@ -21,7 +21,7 @@ import {
   isWinningPosition,
 } from './game-logic';
 import { QuoridorBoard } from './QuoridorBoard';
-import { WallPalette } from './WallPalette';
+import { QuoridorAI, Difficulty } from './QuoridorAI';
 
 type ControlButtonProps = {
   label: string;
@@ -42,8 +42,8 @@ type WallsRemaining = Record<PlayerId, number>;
 type Mode = 'move' | 'wall' | 'drag';
 
 const PLAYER_LABELS: Record<PlayerId, string> = {
-  north: 'North',
-  south: 'South',
+  north: 'You',
+  south: 'AI',
 };
 
 export function QuoridorGame() {
@@ -62,8 +62,51 @@ export function QuoridorGame() {
   const [wallOrientation, setWallOrientation] = useState<Orientation>('horizontal');
   const [winner, setWinner] = useState<PlayerId | null>(null);
   const [statusMessage, setStatusMessage] = useState<string | null>(null);
+  const [isAiThinking, setIsAiThinking] = useState(false);
+  const [difficulty, setDifficulty] = useState<Difficulty>('medium');
+  const [ai] = useState(() => new QuoridorAI('medium'));
 
   const opponent = getOpponent(currentPlayer);
+
+  // Update AI difficulty when prop changes
+  useEffect(() => {
+    ai.setDifficulty(difficulty);
+  }, [difficulty, ai]);
+
+  const makeAiMove = () => {
+    if (currentPlayer !== 'south' || winner || isAiThinking) return;
+    
+    setIsAiThinking(true);
+    
+    setTimeout(() => {
+      const bestMove = ai.getBestMove(positions, walls, wallsRemaining.south);
+      
+      if (bestMove) {
+        if (bestMove.type === 'move') {
+          const nextPositions = { ...positions, south: bestMove.data as Position };
+          setPositions(nextPositions);
+          if (isWinningPosition('south', bestMove.data as Position)) {
+            setWinner('south');
+          } else {
+            setCurrentPlayer('north');
+          }
+        } else {
+          setWalls(prev => [...prev, bestMove.data as Wall]);
+          setWallsRemaining(prev => ({ ...prev, south: prev.south - 1 }));
+          setCurrentPlayer('north');
+        }
+      }
+      
+      setIsAiThinking(false);
+    }, ai.getThinkingTime());
+  };
+
+  // Trigger AI move when it's AI's turn
+  useEffect(() => {
+    if (currentPlayer === 'south' && !winner && !isAiThinking) {
+      makeAiMove();
+    }
+  }, [currentPlayer, winner, isAiThinking]);
 
   const controlPalette = useMemo(
     () => ({
@@ -232,7 +275,24 @@ export function QuoridorGame() {
     setWallOrientation('horizontal');
     setWinner(null);
     setStatusMessage(null);
+    setIsAiThinking(false);
   };
+
+  const handleDifficultyChange = (newDifficulty: Difficulty) => {
+    setDifficulty(newDifficulty);
+    ai.setDifficulty(newDifficulty);
+    startNewGame();
+  };
+
+  // Auto-restart when user wins
+  useEffect(() => {
+    if (winner === 'north') {
+      const timer = setTimeout(() => {
+        startNewGame();
+      }, 2000);
+      return () => clearTimeout(timer);
+    }
+  }, [winner]);
 
   const handleWallSelect = (orientation: Orientation) => {
     setWallOrientation(orientation);
@@ -240,7 +300,7 @@ export function QuoridorGame() {
   };
 
   const handleCellPress = (target: Position) => {
-    if (winner || mode !== 'move') {
+    if (winner || mode !== 'move' || currentPlayer === 'south') {
       return;
     }
 
@@ -267,7 +327,7 @@ export function QuoridorGame() {
   };
 
   const handleWallPlacement = (wall: Wall) => {
-    if (winner || (mode !== 'wall' && mode !== 'drag')) {
+    if (winner || (mode !== 'wall' && mode !== 'drag') || currentPlayer === 'south') {
       return;
     }
 
@@ -315,7 +375,9 @@ export function QuoridorGame() {
           <View style={styles.statusHeader}>
             <View style={{ flexDirection: 'row', gap: 6}}>
               <View style={[styles.statusDot, { backgroundColor: headingColor }]} />
-              <ThemedText style={[styles.statusHeading, { color: headingColor }]}>{heading}</ThemedText>
+              <ThemedText style={[styles.statusHeading, { color: headingColor }]}>
+                {isAiThinking ? 'AI is thinking...' : heading}
+              </ThemedText>
             </View>
             <Pressable
               style={[styles.resetButton, { backgroundColor: Colors.accent }]}
@@ -327,7 +389,18 @@ export function QuoridorGame() {
               </ThemedText>
             </Pressable>
           </View>
-          {/*{statusMessage ? <ThemedText style={styles.helperText}>{statusMessage}</ThemedText> : null}*/}
+          <View style={styles.difficultyRow}>
+            {(['easy', 'medium', 'hard'] as Difficulty[]).map((diff) => (
+              <Pressable
+                key={diff}
+                style={[styles.difficultyButton, difficulty === diff && styles.activeDifficultyButton]}
+                onPress={() => handleDifficultyChange(diff)}>
+                <ThemedText style={[styles.difficultyButtonText, difficulty === diff && styles.activeDifficultyButtonText]}>
+                  {diff.charAt(0).toUpperCase() + diff.slice(1)}
+                </ThemedText>
+              </Pressable>
+            ))}
+          </View>
         </View>
 
         <View style={styles.summaryRow}>
@@ -335,11 +408,10 @@ export function QuoridorGame() {
             <View key={player} style={styles.playerSummary}>
               <View style={[styles.playerBadge, { backgroundColor: playerColors[player] }]} />
               <View style={styles.playerSummaryText}>
-                <ThemedText style={styles.playerName}>{PLAYER_LABELS[player]}</ThemedText>
+                <ThemedText style={styles.playerName}>
+                  {PLAYER_LABELS[player]}
+                </ThemedText>
                 <ThemedText style={styles.playerDetail}>Walls left: {wallsRemaining[player]}</ThemedText>
-                {/*<ThemedText style={styles.playerDetail}>*/}
-                {/*  Pawn at {formatPosition(positions[player])}*/}
-                {/*</ThemedText>*/}
               </View>
             </View>
           ))}
@@ -388,33 +460,33 @@ export function QuoridorGame() {
           {/*    disabled={winner !== null}*/}
           {/*  />*/}
           {/*)}*/}
-          {mode === 'wall' ? (
+          {mode === 'wall' && (
             <View style={styles.wallControls}>
-              <View style={styles.wallOptionsRow}>
-                <WallOrientationButton
-                  orientation="horizontal"
-                  isActive={wallOrientation === 'horizontal'}
+              <View style={styles.compactWallRow}>
+                <Pressable
+                  style={[styles.compactWallButton, wallOrientation === 'horizontal' && styles.activeSettingButton]}
                   onPress={() => {
                     setWallOrientation('horizontal');
                     setStatusMessage(null);
                   }}
-                  disabled={winner !== null}
-                />
-                <WallOrientationButton
-                  orientation="vertical"
-                  isActive={wallOrientation === 'vertical'}
+                  disabled={winner !== null}>
+                  <View style={[styles.wallPreviewSmall, styles.horizontalWallPreviewSmall]} />
+                  <ThemedText style={[styles.compactWallText, wallOrientation === 'horizontal' && styles.activeSettingButtonText]}>Horizontal</ThemedText>
+                </Pressable>
+                <Pressable
+                  style={[styles.compactWallButton, wallOrientation === 'vertical' && styles.activeSettingButton]}
                   onPress={() => {
                     setWallOrientation('vertical');
                     setStatusMessage(null);
                   }}
-                  disabled={winner !== null}
-                />
+                  disabled={winner !== null}>
+                  <View style={[styles.wallPreviewSmall, styles.verticalWallPreviewSmall]} />
+                  <ThemedText style={[styles.compactWallText, wallOrientation === 'vertical' && styles.activeSettingButtonText]}>Vertical</ThemedText>
+                </Pressable>
               </View>
-              {/*<ThemedText style={styles.wallsHint}>*/}
-              {/*  Walls this turn: {wallsRemaining[currentPlayer]}*/}
-              {/*</ThemedText>*/}
+              <ThemedText style={styles.wallHint}>Tap highlighted areas on board to place wall</ThemedText>
             </View>
-          ) : null}
+          )}
           {/*{mode === 'drag' && (*/}
           {/*  <ThemedText style={styles.wallsHint}>*/}
           {/*    Select a wall type below, then tap a highlighted area on the board to place it*/}
@@ -456,17 +528,16 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   // scrollContainer: {
-  //   paddingVertical: 4,
-  //   paddingHorizontal: 5,
+  //   // paddingVertical: 4,
+  //   // paddingHorizontal: 5,
   //   paddingBottom: 32,
   // },
   container: {
-    gap: 14,
+    gap: 10,
     borderRadius: 20,
     marginTop: 10,
-    padding: 20,
+    padding: 16,
     backgroundColor: Colors.surface,
-    borderWidth: 1,
     borderColor: Colors.outline,
     shadowColor: Colors.translucentDark,
     shadowOpacity: 0.12,
@@ -479,14 +550,14 @@ const styles = StyleSheet.create({
   },
   lead: {
     fontSize: 16,
-    lineHeight: 22,
+    lineHeight: 20,
     textAlign: 'center',
   },
   statusCard: {
     borderRadius: 16,
     paddingVertical: 8,
     paddingHorizontal: 16,
-    gap: 8,
+    gap: 2,
     backgroundColor: Colors.surfaceMuted,
     borderWidth: 1,
     borderColor: Colors.outline,
@@ -623,5 +694,108 @@ const styles = StyleSheet.create({
   footerNote: {
     fontSize: 14,
     lineHeight: 20,
+  },
+  gameSettings: {
+    gap: 12,
+    padding: 16,
+    borderRadius: 14,
+    backgroundColor: Colors.surfaceMuted,
+    borderWidth: 1,
+    borderColor: Colors.outline,
+  },
+  settingRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    gap: 12,
+  },
+  settingLabel: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: Colors.heading,
+  },
+  settingButton: {
+    paddingVertical: 6,
+    paddingHorizontal: 12,
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: Colors.outline,
+    backgroundColor: Colors.surface,
+  },
+  activeSettingButton: {
+    backgroundColor: Colors.accent,
+    borderColor: Colors.accent,
+  },
+  settingButtonText: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: Colors.text,
+  },
+  activeSettingButtonText: {
+    color: Colors.buttonText,
+  },
+  compactWallRow: {
+    flexDirection: 'row',
+    gap: 8,
+  },
+  compactWallButton: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    paddingVertical: 8,
+    paddingHorizontal: 12,
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: Colors.outline,
+    backgroundColor: Colors.surface,
+  },
+  wallPreviewSmall: {
+    backgroundColor: Colors.board.wall,
+    borderRadius: 2,
+  },
+  horizontalWallPreviewSmall: {
+    width: 20,
+    height: 4,
+  },
+  verticalWallPreviewSmall: {
+    width: 4,
+    height: 20,
+  },
+  compactWallText: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: Colors.text,
+  },
+  wallHint: {
+    fontSize: 12,
+    fontStyle: 'italic',
+    color: Colors.textMuted,
+    textAlign: 'center',
+  },
+  difficultyRow: {
+    flexDirection: 'row',
+    gap: 6,
+    marginTop: 8,
+  },
+  difficultyButton: {
+    paddingVertical: 3,
+    paddingHorizontal: 6,
+    borderRadius: 6,
+    borderColor: Colors.outline,
+    backgroundColor: Colors.surface,
+    alignItems: 'center',
+  },
+  activeDifficultyButton: {
+    backgroundColor: Colors.accent,
+    borderColor: Colors.accent,
+  },
+  difficultyButtonText: {
+    fontSize: 12,
+    fontWeight: '600',
+    color: Colors.text,
+  },
+  activeDifficultyButtonText: {
+    color: Colors.buttonText,
   },
 });

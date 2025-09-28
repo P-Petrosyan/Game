@@ -270,7 +270,7 @@ export function MultiplayerQuoridorGame({ gameId }: MultiplayerQuoridorGameProps
       if (userDoc.exists()) {
         const userData = userDoc.data();
         const currentPoints = userData.stats?.points || 0;
-        const newLevel = ((currentPoints / 500) + 1).toString();
+        const newLevel = ((currentPoints / 500) + 1).toFixed(2);
         await updateDoc(userRef, { 'stats.level': newLevel });
       }
     } catch (error) {
@@ -338,13 +338,13 @@ export function MultiplayerQuoridorGame({ gameId }: MultiplayerQuoridorGameProps
 
         const newGame = await createGame(newGameName, '');
 
-        // Add opponent to the new game immediately
+        // Add opponent to the new game immediately and start playing
         const gameRef = doc(db, 'games', newGame.id);
         const opponentName = gameState?.players?.[opponentId]?.displayName || 'Player';
         await updateDoc(gameRef, {
           playerIds: [user.uid, opponentId],
           playerCount: 2,
-          status: 'active',
+          status: 'playing',
           oldGameId: gameId,
           [`players.${opponentId}`]: {
             displayName: opponentName,
@@ -479,30 +479,27 @@ export function MultiplayerQuoridorGame({ gameId }: MultiplayerQuoridorGameProps
                 </View>
                 {mode === 'wall' && (
                   <View style={styles.wallControls}>
-                    <Pressable
-                      onPress={() => setWallOrientation('horizontal')}
-                      style={[styles.orientationButton, wallOrientation === 'horizontal' && styles.activeButton]}>
-                      <ThemedText
-                        style={[
-                          styles.controlButtonText,
-                          wallOrientation === 'horizontal' && styles.controlButtonTextActive,
-                        ]}
-                      >
-                        Horizontal
-                      </ThemedText>
-                    </Pressable>
-                    <Pressable
-                      onPress={() => setWallOrientation('vertical')}
-                      style={[styles.orientationButton, wallOrientation === 'vertical' && styles.activeButton]}>
-                      <ThemedText
-                        style={[
-                          styles.controlButtonText,
-                          wallOrientation === 'vertical' && styles.controlButtonTextActive,
-                        ]}
-                      >
-                        Vertical
-                      </ThemedText>
-                    </Pressable>
+                    <View style={styles.compactWallRow}>
+                      <Pressable
+                        style={[styles.compactWallButton, wallOrientation === 'horizontal' && styles.activeSettingButton]}
+                        onPress={() => {
+                          setWallOrientation('horizontal');
+                        }}
+                        disabled={winner !== null}>
+                        <View style={[styles.wallPreviewSmall, styles.horizontalWallPreviewSmall]} />
+                        <ThemedText style={[styles.compactWallText, wallOrientation === 'horizontal' && styles.activeSettingButtonText]}>Horizontal</ThemedText>
+                      </Pressable>
+                      <Pressable
+                        style={[styles.compactWallButton, wallOrientation === 'vertical' && styles.activeSettingButton]}
+                        onPress={() => {
+                          setWallOrientation('vertical');
+                        }}
+                        disabled={winner !== null}>
+                        <View style={[styles.wallPreviewSmall, styles.verticalWallPreviewSmall]} />
+                        <ThemedText style={[styles.compactWallText, wallOrientation === 'vertical' && styles.activeSettingButtonText]}>Vertical</ThemedText>
+                      </Pressable>
+                    </View>
+                    <ThemedText style={styles.wallHint}>Tap highlighted areas on board to place wall</ThemedText>
                   </View>
                 )}
               </>
@@ -631,7 +628,6 @@ const styles = StyleSheet.create({
     gap: 12,
   },
   wallControls: {
-    flexDirection: 'row',
     gap: 12,
   },
   controlButton: {
@@ -742,5 +738,90 @@ const styles = StyleSheet.create({
   },
   timerWarning: {
     color: Colors.danger,
+  },
+
+  settingButton: {
+    paddingVertical: 6,
+    paddingHorizontal: 12,
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: Colors.outline,
+    backgroundColor: Colors.surface,
+  },
+  activeSettingButton: {
+    backgroundColor: Colors.accent,
+    borderColor: Colors.accent,
+  },
+  settingButtonText: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: Colors.text,
+  },
+  activeSettingButtonText: {
+    color: Colors.buttonText,
+  },
+  compactWallRow: {
+    flexDirection: 'row',
+    gap: 8,
+  },
+  compactWallButton: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    paddingVertical: 8,
+    paddingHorizontal: 12,
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: Colors.outline,
+    backgroundColor: Colors.surface,
+  },
+  wallPreviewSmall: {
+    backgroundColor: Colors.board.wall,
+    borderRadius: 2,
+  },
+  horizontalWallPreviewSmall: {
+    width: 20,
+    height: 4,
+  },
+  verticalWallPreviewSmall: {
+    width: 4,
+    height: 20,
+  },
+  compactWallText: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: Colors.text,
+  },
+  wallHint: {
+    fontSize: 12,
+    fontStyle: 'italic',
+    color: Colors.textMuted,
+    textAlign: 'center',
+  },
+  difficultyRow: {
+    flexDirection: 'row',
+    gap: 6,
+    marginTop: 8,
+  },
+  difficultyButton: {
+    paddingVertical: 3,
+    paddingHorizontal: 6,
+    borderRadius: 6,
+    borderColor: Colors.outline,
+    backgroundColor: Colors.surface,
+    alignItems: 'center',
+  },
+  activeDifficultyButton: {
+    backgroundColor: Colors.accent,
+    borderColor: Colors.accent,
+  },
+  difficultyButtonText: {
+    fontSize: 12,
+    fontWeight: '600',
+    color: Colors.text,
+  },
+  activeDifficultyButtonText: {
+    color: Colors.buttonText,
   },
 });

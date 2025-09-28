@@ -99,12 +99,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           uid: userCredential.user.uid,
           email: userCredential.user.email,
           displayName: userCredential.user.displayName,
-          stats: {
-            points: 0,
-            level: 1,
-            gamesPlayed: 0,
-            wins: 0,
-          },
           lastLoginAt: serverTimestamp(),
         };
         await setDoc(doc(db, 'users', userCredential.user.uid), profile, { merge: true });

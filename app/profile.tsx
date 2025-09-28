@@ -228,7 +228,7 @@ const styles = StyleSheet.create({
   statItem: {
     flex: 1,
     alignItems: 'center',
-    padding: 12,
+    padding: 10,
     backgroundColor: Colors.surfaceMuted,
     borderRadius: 8,
     borderWidth: 1,

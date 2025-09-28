@@ -11,8 +11,8 @@ import { useUserStats } from '@/hooks/use-user-stats';
 const actions = [
   {
     key: 'local',
-    title: 'Local Match',
-    description: 'Challenge a friend on the same device with the classic board.',
+    title: 'Play vs AI',
+    description: 'Challenge the AI with adjustable difficulty.',
     route: '/local-play',
   },
   {
