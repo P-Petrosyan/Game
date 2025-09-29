@@ -84,6 +84,12 @@ export const AI_DISPLAY_NAME = 'Lio';
 const AI_GAME_BASE_NAME = 'Quick Match';
 const MAX_OPEN_AI_GAMES = 2;
 const MAX_JOINABLE_GAMES = 2;
+const AI_SEED_LOCK_DURATION_MS = 15_000;
+
+type AiSeedState = {
+  lockedUntil?: number;
+  lockToken?: string | null;
+};
 
 function mapSnapshotToLobbyGame(snapshot: QueryDocumentSnapshot<FirestoreLobbyGame>): LobbyGame {
   const data = snapshot.data();
@@ -107,6 +113,74 @@ export function GameLobbyProvider({ children }: { children: ReactNode }) {
   const [games, setGames] = useState<LobbyGame[]>([]);
   const [loading, setLoading] = useState(true);
   const aiCreationInProgressRef = useRef(false);
+
+  const acquireAiSeedLock = useCallback(async (): Promise<string | null> => {
+    const sentinelRef = doc(db, 'metadata', 'aiLobbySeed');
+    const now = Date.now();
+    const lockToken = `${now}-${Math.random().toString(36).slice(2)}`;
+
+    try {
+      const result = await runTransaction(db, async (transaction) => {
+        const snapshot = await transaction.get(sentinelRef);
+        const data = snapshot.exists() ? (snapshot.data() as AiSeedState) : {};
+
+        if (data.lockedUntil && data.lockedUntil > now && data.lockToken) {
+          return null;
+        }
+
+        transaction.set(
+          sentinelRef,
+          {
+            lockedUntil: now + AI_SEED_LOCK_DURATION_MS,
+            lockToken,
+          },
+          { merge: true },
+        );
+
+        return lockToken;
+      });
+
+      return result ?? null;
+    } catch (error) {
+      console.error('Failed to acquire AI lobby seed lock:', error);
+      return null;
+    }
+  }, []);
+
+  const releaseAiSeedLock = useCallback(async (token: string | null) => {
+    if (!token) {
+      return;
+    }
+
+    const sentinelRef = doc(db, 'metadata', 'aiLobbySeed');
+
+    try {
+      await runTransaction(db, async (transaction) => {
+        const snapshot = await transaction.get(sentinelRef);
+
+        if (!snapshot.exists()) {
+          return;
+        }
+
+        const data = snapshot.data() as AiSeedState;
+
+        if (data.lockToken !== token) {
+          return;
+        }
+
+        transaction.set(
+          sentinelRef,
+          {
+            lockedUntil: Date.now(),
+            lockToken: null,
+          },
+          { merge: true },
+        );
+      });
+    } catch (error) {
+      console.error('Failed to release AI lobby seed lock:', error);
+    }
+  }, []);
 
   const createAIGame = useCallback(async () => {
     const randomSuffix = Math.floor(100 + Math.random() * 900);
@@ -175,24 +249,52 @@ export function GameLobbyProvider({ children }: { children: ReactNode }) {
     }
 
     const aiJoinable = joinableGames.filter((game) => game.hostId === AI_PLAYER_ID);
-    const desiredAiGames = Math.min(MAX_OPEN_AI_GAMES, MAX_JOINABLE_GAMES - humanJoinable.length);
-    const aiGamesToCreate = desiredAiGames - aiJoinable.length;
 
-    if (aiGamesToCreate <= 0 || aiCreationInProgressRef.current) {
+    // Only seed a fresh batch once all existing AI-hosted games are unavailable.
+    if (aiJoinable.length > 0 || aiCreationInProgressRef.current) {
+      return;
+    }
+
+    const lockToken = await acquireAiSeedLock();
+
+    if (!lockToken) {
       return;
     }
 
     aiCreationInProgressRef.current = true;
+
     try {
-      for (let index = 0; index < aiGamesToCreate; index += 1) {
+      const latestSource = overrideGames ?? games;
+      const latestJoinable = latestSource.filter(
+        (game) =>
+          !game.isPrivate &&
+          game.status === 'waiting' &&
+          game.players < game.maxPlayers,
+      );
+      const latestHumanJoinable = latestJoinable.filter(
+        (game) => game.hostId && game.hostId !== AI_PLAYER_ID,
+      );
+
+      if (latestHumanJoinable.length > 0) {
+        return;
+      }
+
+      const latestAiJoinable = latestJoinable.filter((game) => game.hostId === AI_PLAYER_ID);
+
+      if (latestAiJoinable.length > 0) {
+        return;
+      }
+
+      for (let index = 0; index < MAX_OPEN_AI_GAMES; index += 1) {
         await createAIGame();
       }
     } catch (error) {
       console.error('Failed to seed AI lobby game:', error);
     } finally {
       aiCreationInProgressRef.current = false;
+      await releaseAiSeedLock(lockToken);
     }
-  }, [createAIGame, games]);
+  }, [acquireAiSeedLock, createAIGame, games, releaseAiSeedLock]);
 
   useEffect(() => {
     const gamesCollection = collection(db, 'games') as CollectionReference<FirestoreLobbyGame>;
