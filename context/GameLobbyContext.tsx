@@ -83,6 +83,7 @@ export const AI_PLAYER_ID = '__quori_ai_hard__';
 export const AI_DISPLAY_NAME = 'Lio';
 const AI_GAME_BASE_NAME = 'Quick Match';
 const MAX_OPEN_AI_GAMES = 2;
+const MAX_JOINABLE_GAMES = 2;
 
 function mapSnapshotToLobbyGame(snapshot: QueryDocumentSnapshot<FirestoreLobbyGame>): LobbyGame {
   const data = snapshot.data();
@@ -164,27 +165,28 @@ export function GameLobbyProvider({ children }: { children: ReactNode }) {
         game.players < game.maxPlayers,
     );
 
+    if (joinableGames.length >= MAX_JOINABLE_GAMES) {
+      return;
+    }
+
     const humanJoinable = joinableGames.filter((game) => game.hostId && game.hostId !== AI_PLAYER_ID);
     if (humanJoinable.length > 0) {
       return;
     }
 
     const aiJoinable = joinableGames.filter((game) => game.hostId === AI_PLAYER_ID);
-    if (aiJoinable.length >= MAX_OPEN_AI_GAMES) {
-      return;
-    }
+    const desiredAiGames = Math.min(MAX_OPEN_AI_GAMES, MAX_JOINABLE_GAMES - humanJoinable.length);
+    const aiGamesToCreate = desiredAiGames - aiJoinable.length;
 
-    if (aiJoinable.length > 0) {
-      return;
-    }
-
-    if (aiCreationInProgressRef.current) {
+    if (aiGamesToCreate <= 0 || aiCreationInProgressRef.current) {
       return;
     }
 
     aiCreationInProgressRef.current = true;
     try {
-      await createAIGame();
+      for (let index = 0; index < aiGamesToCreate; index += 1) {
+        await createAIGame();
+      }
     } catch (error) {
       console.error('Failed to seed AI lobby game:', error);
     } finally {
@@ -365,10 +367,12 @@ export function GameLobbyProvider({ children }: { children: ReactNode }) {
         }
 
         const nextIds = playerIds.filter((id) => id !== user.uid);
+        const aiPlayerId = data.aiMatch?.aiPlayerId;
+        const remainingHumanIds = nextIds.filter((id) => id !== aiPlayerId);
         const nextCount = Math.max(0, nextIds.length);
 
-        // Delete game if no players left
-        if (nextCount === 0) {
+        // Delete game if there are no human players remaining
+        if (remainingHumanIds.length === 0) {
           transaction.delete(gameRef);
           return;
         }
