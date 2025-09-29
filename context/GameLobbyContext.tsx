@@ -14,6 +14,7 @@ import {
   type CollectionReference,
   deleteField,
   doc,
+  getDocs,
   onSnapshot,
   orderBy,
   query,
@@ -264,7 +265,9 @@ export function GameLobbyProvider({ children }: { children: ReactNode }) {
     aiCreationInProgressRef.current = true;
 
     try {
-      const latestSource = overrideGames ?? games;
+      const gamesCollection = collection(db, 'games') as CollectionReference<FirestoreLobbyGame>;
+      const snapshot = await getDocs(gamesCollection);
+      const latestSource = snapshot.docs.map(mapSnapshotToLobbyGame);
       const latestJoinable = latestSource.filter(
         (game) =>
           !game.isPrivate &&
@@ -281,11 +284,16 @@ export function GameLobbyProvider({ children }: { children: ReactNode }) {
 
       const latestAiJoinable = latestJoinable.filter((game) => game.hostId === AI_PLAYER_ID);
 
-      if (latestAiJoinable.length > 0) {
+      if (latestAiJoinable.length >= MAX_OPEN_AI_GAMES) {
         return;
       }
 
-      for (let index = 0; index < MAX_OPEN_AI_GAMES; index += 1) {
+      const gamesToCreate = Math.min(
+        MAX_OPEN_AI_GAMES - latestAiJoinable.length,
+        MAX_OPEN_AI_GAMES,
+      );
+
+      for (let index = 0; index < gamesToCreate; index += 1) {
         await createAIGame();
       }
     } catch (error) {
