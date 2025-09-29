@@ -4,6 +4,7 @@ import React, {
   useContext,
   useEffect,
   useMemo,
+  useRef,
   useState,
   type ReactNode,
 } from 'react';
@@ -14,7 +15,6 @@ import {
   deleteField,
   doc,
   onSnapshot,
-  where,
   orderBy,
   query,
   runTransaction,
@@ -60,6 +60,12 @@ type FirestoreLobbyGame = {
     currentPlayer?: string;
     lastUpdatedAt?: Timestamp | null;
   };
+  aiMatch?: {
+    enabled: boolean;
+    difficulty: 'easy' | 'medium' | 'hard';
+    aiPlayerId: string;
+    aiName: string;
+  };
 };
 
 type GameLobbyContextValue = {
@@ -68,9 +74,15 @@ type GameLobbyContextValue = {
   createGame: (name: string, code: string, options?: { maxPlayers?: number }) => Promise<LobbyGame>;
   joinGame: (gameId: string, code?: string) => Promise<void>;
   leaveGame: (gameId: string) => Promise<void>;
+  ensureAIGameAvailability: () => Promise<void>;
 };
 
 const GameLobbyContext = createContext<GameLobbyContextValue | undefined>(undefined);
+
+export const AI_PLAYER_ID = '__quori_ai_hard__';
+export const AI_DISPLAY_NAME = 'Lio';
+const AI_GAME_BASE_NAME = 'Quick Match';
+const MAX_OPEN_AI_GAMES = 2;
 
 function mapSnapshotToLobbyGame(snapshot: QueryDocumentSnapshot<FirestoreLobbyGame>): LobbyGame {
   const data = snapshot.data();
@@ -93,6 +105,92 @@ export function GameLobbyProvider({ children }: { children: ReactNode }) {
   const { user } = useAuth();
   const [games, setGames] = useState<LobbyGame[]>([]);
   const [loading, setLoading] = useState(true);
+  const aiCreationInProgressRef = useRef(false);
+
+  const createAIGame = useCallback(async () => {
+    const randomSuffix = Math.floor(100 + Math.random() * 900);
+    const name = `${AI_GAME_BASE_NAME} ${randomSuffix}`;
+
+    const aiGame: FirestoreLobbyGame = {
+      name,
+      code: '',
+      maxPlayers: 2,
+      playerIds: [AI_PLAYER_ID],
+      playerCount: 1,
+      status: 'waiting',
+      hostId: AI_PLAYER_ID,
+      hostName: AI_DISPLAY_NAME,
+      isPrivate: false,
+      players: {
+        [AI_PLAYER_ID]: {
+          displayName: AI_DISPLAY_NAME,
+          joinedAt: serverTimestamp(),
+          ready: false,
+        },
+      },
+      createdAt: serverTimestamp(),
+      updatedAt: serverTimestamp(),
+      state: {
+        currentPlayer: 'north',
+        positions: {
+          north: { row: 0, col: 4 },
+          south: { row: 8, col: 4 },
+        },
+        walls: [],
+        wallsRemaining: {
+          north: 10,
+          south: 10,
+        },
+        winner: null,
+        lastUpdatedAt: serverTimestamp(),
+      },
+      aiMatch: {
+        enabled: true,
+        difficulty: 'hard',
+        aiPlayerId: AI_PLAYER_ID,
+        aiName: AI_DISPLAY_NAME,
+      },
+    };
+
+    await addDoc(collection(db, 'games'), aiGame);
+  }, []);
+
+  const ensureAIGameAvailability = useCallback(async (overrideGames?: LobbyGame[]) => {
+    const sourceGames = overrideGames ?? games;
+    const joinableGames = sourceGames.filter(
+      (game) =>
+        !game.isPrivate &&
+        game.status === 'waiting' &&
+        game.players < game.maxPlayers,
+    );
+
+    const humanJoinable = joinableGames.filter((game) => game.hostId && game.hostId !== AI_PLAYER_ID);
+    if (humanJoinable.length > 0) {
+      return;
+    }
+
+    const aiJoinable = joinableGames.filter((game) => game.hostId === AI_PLAYER_ID);
+    if (aiJoinable.length >= MAX_OPEN_AI_GAMES) {
+      return;
+    }
+
+    if (aiJoinable.length > 0) {
+      return;
+    }
+
+    if (aiCreationInProgressRef.current) {
+      return;
+    }
+
+    aiCreationInProgressRef.current = true;
+    try {
+      await createAIGame();
+    } catch (error) {
+      console.error('Failed to seed AI lobby game:', error);
+    } finally {
+      aiCreationInProgressRef.current = false;
+    }
+  }, [createAIGame, games]);
 
   useEffect(() => {
     const gamesCollection = collection(db, 'games') as CollectionReference<FirestoreLobbyGame>;
@@ -104,6 +202,7 @@ export function GameLobbyProvider({ children }: { children: ReactNode }) {
         const nextGames = snapshot.docs.map(mapSnapshotToLobbyGame);
         setGames(nextGames);
         setLoading(false);
+        void ensureAIGameAvailability(nextGames);
       },
       (error) => {
         console.error('Failed to subscribe to games:', error);
@@ -213,11 +312,17 @@ export function GameLobbyProvider({ children }: { children: ReactNode }) {
           throw new Error('This game is already full.');
         }
 
+        const isAIMatch = Boolean(data.aiMatch?.enabled && data.aiMatch?.aiPlayerId);
+        const aiPlayerId = isAIMatch ? data.aiMatch?.aiPlayerId : undefined;
+
         const nextCount = currentCount + 1;
         const nextStatus = nextCount >= 2 ? 'active' : data.status ?? 'waiting';
+        const nextPlayerIds = isAIMatch && aiPlayerId
+          ? [user.uid, aiPlayerId]
+          : [...playerIds, user.uid];
 
-        transaction.update(gameRef, {
-          playerIds: [...playerIds, user.uid],
+        const updates: Record<string, unknown> = {
+          playerIds: nextPlayerIds,
           playerCount: nextCount,
           status: nextStatus,
           updatedAt: serverTimestamp(),
@@ -225,7 +330,13 @@ export function GameLobbyProvider({ children }: { children: ReactNode }) {
             displayName: user.displayName ?? user.email ?? 'Player',
             joinedAt: serverTimestamp(),
           },
-        });
+        };
+
+        if (isAIMatch && aiPlayerId) {
+          updates[`players.${aiPlayerId}.ready`] = true;
+        }
+
+        transaction.update(gameRef, updates);
       });
     },
     [user],
@@ -283,13 +394,20 @@ export function GameLobbyProvider({ children }: { children: ReactNode }) {
 
         const nextStatus = nextCount <= 1 ? 'waiting' : data.status ?? 'active';
 
-        transaction.update(gameRef, {
+        const updates: Record<string, unknown> = {
           playerIds: nextIds,
           playerCount: nextCount,
           status: nextStatus,
           updatedAt: serverTimestamp(),
           [`players.${user.uid}`]: deleteField(),
-        });
+        };
+
+        if (data.aiMatch?.enabled && data.aiMatch.aiPlayerId) {
+          updates[`players.${data.aiMatch.aiPlayerId}.ready`] = false;
+          updates.playAgainVotes = deleteField();
+        }
+
+        transaction.update(gameRef, updates);
       });
     },
     [user],
@@ -302,8 +420,9 @@ export function GameLobbyProvider({ children }: { children: ReactNode }) {
       createGame,
       joinGame,
       leaveGame,
+      ensureAIGameAvailability,
     }),
-    [createGame, games, joinGame, leaveGame, loading],
+    [createGame, ensureAIGameAvailability, games, joinGame, leaveGame, loading],
   );
 
   return <GameLobbyContext.Provider value={value}>{children}</GameLobbyContext.Provider>;
