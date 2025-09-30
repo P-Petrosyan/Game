@@ -41,3 +41,6 @@ app-example
 # generated native folders
 /ios
 /android
+
+# Rust build artifacts
+ai-rust/target/
