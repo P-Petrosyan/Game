@@ -75,29 +75,34 @@ export function QuoridorGame() {
 
   const makeAiMove = () => {
     if (currentPlayer !== 'south' || winner || isAiThinking) return;
-    
+
     setIsAiThinking(true);
-    
-    setTimeout(() => {
-      const bestMove = ai.getBestMove(positions, walls, wallsRemaining.south);
-      
-      if (bestMove) {
-        if (bestMove.type === 'move') {
-          const nextPositions = { ...positions, south: bestMove.data as Position };
-          setPositions(nextPositions);
-          if (isWinningPosition('south', bestMove.data as Position)) {
-            setWinner('south');
+
+    setTimeout(async () => {
+      try {
+        const bestMove = await ai.getBestMove(positions, walls, wallsRemaining);
+
+        if (bestMove) {
+          if (bestMove.type === 'move') {
+            const nextPositions = {...positions, south: bestMove.data as Position};
+            setPositions(nextPositions);
+            if (isWinningPosition('south', bestMove.data as Position)) {
+              setWinner('south');
+            } else {
+              setCurrentPlayer('north');
+            }
           } else {
+            setWalls(prev => [...prev, bestMove.data as Wall]);
+            setWallsRemaining(prev => ({...prev, south: prev.south - 1}));
             setCurrentPlayer('north');
           }
-        } else {
-          setWalls(prev => [...prev, bestMove.data as Wall]);
-          setWallsRemaining(prev => ({ ...prev, south: prev.south - 1 }));
-          setCurrentPlayer('north');
         }
+      } catch (error) {
+        console.warn('[Quoridor] Failed to resolve AI move', error);
+      } finally {
+        setIsAiThinking(false);
       }
-      
-      setIsAiThinking(false);
+      // setIsAiThinking(false);
     }, ai.getThinkingTime());
   };
 
