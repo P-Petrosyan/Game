@@ -36,7 +36,7 @@ function GameListItem({ name, players, maxPlayers, status, isPrivate, onPress, d
         {isPrivate && <ThemedText style={styles.privateFlag}>🔒 Private</ThemedText>}
       </View>
       <ThemedText style={styles.gamePlayers}>{players >= maxPlayers ? 'Full' : `${players}/${maxPlayers} players`}</ThemedText>
-      {/*{status ? <ThemedText style={styles.gameStatus}>{status}</ThemedText> : null}*/}
+      {status ? <ThemedText style={styles.gameStatus}>{status}</ThemedText> : null}
     </Pressable>
   );
 }

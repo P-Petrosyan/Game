@@ -199,7 +199,7 @@ export function MultiplayerQuoridorGame({ gameId }: MultiplayerQuoridorGameProps
         updatePlayerStats(user.uid, true);
       }
     }
-  }, [gameId, gameState?.playerIds, gameState?.players, gameState?.status, myPlayerSide, playerIds.length, updateGameState, updatePlayerStats, user, winner]);
+  }, [gameId, gameState?.playerIds, gameState?.players, gameState?.status, myPlayerSide, playerIds.length, updateGameState, user, winner]);
 
   // new game redirection for Play Again
   useEffect(() => {
@@ -274,7 +274,7 @@ export function MultiplayerQuoridorGame({ gameId }: MultiplayerQuoridorGameProps
         timerRef.current = null;
       }
     };
-  }, [currentPlayer, isMyTurn, myPlayerSide, opponentId, updateGameState, updatePlayerStats, user?.uid, winner]);
+  }, [currentPlayer, isMyTurn, myPlayerSide, opponentId, updateGameState, user?.uid, winner]);
 
   const updatePlayerStats = useCallback(async (playerId: string, isWinner: boolean) => {
     if (!playerId || playerId === AI_PLAYER_ID) {

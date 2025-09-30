@@ -80,7 +80,7 @@ type GameLobbyContextValue = {
 
 const GameLobbyContext = createContext<GameLobbyContextValue | undefined>(undefined);
 
-export const AI_PLAYER_ID = '__quori_ai_hard__';
+export const AI_PLAYER_ID = 'quori_ai_hard';
 export const AI_DISPLAY_NAME = 'Lio';
 const AI_GAME_BASE_NAME = 'Quick Match';
 const MAX_OPEN_AI_GAMES = 2;
