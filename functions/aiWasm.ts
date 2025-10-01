@@ -1,6 +1,5 @@
 import { Asset } from 'expo-asset';
 import * as FileSystem from 'expo-file-system';
-import { getQuickJS } from 'react-native-quickjs';
 import * as wasmBindings from '../ai-rust/wasm-ai/ai_rust_bg.js';
 
 type WasmExports = typeof import('../ai-rust/wasm-ai/ai_rust_bg.wasm');
@@ -70,16 +69,6 @@ async function readWasmBinary(): Promise<Uint8Array> {
   return decodeBase64(base64Content);
 }
 
-async function ensureQuickJSRuntime(): Promise<void> {
-  try {
-    if (typeof getQuickJS === 'function') {
-      await getQuickJS();
-    }
-  } catch (error) {
-    console.warn('[aiWasm] QuickJS runtime could not be initialised. Falling back to global WebAssembly.', error);
-  }
-}
-
 async function initialiseWasm(): Promise<void> {
   if (wasmState.instance) {
     return;
@@ -95,7 +84,6 @@ async function initialiseWasm(): Promise<void> {
         throw new Error('WebAssembly API unavailable in this environment.');
       }
 
-      await ensureQuickJSRuntime();
       const binary = await readWasmBinary();
 
       const imports = {
