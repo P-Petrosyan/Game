@@ -16,6 +16,17 @@ This is an [Expo](https://expo.dev) project created with [`create-expo-app`](htt
    npx expo start
    ```
 
+## Build the Rust WASM module
+
+The Hard difficulty AI runs in Rust and needs to be compiled to WebAssembly before bundling the app. Install [wasm-pack](https://rustwasm.github.io/wasm-pack/installer/) and build the module into the expected output directory:
+
+```bash
+cd ai-rust
+wasm-pack build --target bundler --out-dir ./wasm-ai
+```
+
+The build command regenerates the JavaScript glue code (`ai_rust_bg.js`) and the binary payload (`ai_rust_bg.wasm`) that the React Native app loads at runtime.
+
 ### Connect Firebase services
 
 This project uses [Firebase Authentication](https://firebase.google.com/docs/auth) and [Cloud Firestore](https://firebase.google.com/docs/firestore) for multiplayer features. Create a Firebase project and add a web app, then provide the configuration values via environment variables (Expo automatically exposes variables prefixed with `EXPO_PUBLIC_`).
