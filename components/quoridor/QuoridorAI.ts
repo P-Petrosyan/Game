@@ -8,8 +8,6 @@ import {
   computeAvailableWalls,
   isWinningPosition,
 } from './game-logic';
-import { getBestMoveWasm, isWasmSupported } from '@/functions/aiWasm';
-
 export type Difficulty = 'easy' | 'medium' | 'hard';
 
 export interface AIMove {
@@ -20,7 +18,7 @@ export interface AIMove {
 
 export class QuoridorAI {
   private difficulty: Difficulty;
-  private gameHistory: Array<{ positions: Record<PlayerId, Position>; walls: Wall[] }> = [];
+  private gameHistory: { positions: Record<PlayerId, Position>; walls: Wall[] }[] = [];
 
   constructor(difficulty: Difficulty) {
     this.difficulty = difficulty;
@@ -310,43 +308,13 @@ export class QuoridorAI {
   ): Promise<AIMove | null> {
     this.recordSnapshot(positions, walls);
 
-    if (this.difficulty === 'hard') {
-      try {
-        if (isWasmSupported()) {
-          type WasmMove = { type: 'move'; data: Position } | { type: 'wall'; data: Wall };
-          const payload = JSON.stringify({ positions, walls, wallsRemaining });
-          const response = await getBestMoveWasm(payload);
-          const parsed = JSON.parse(response) as WasmMove | null;
-
-          if (parsed?.type === 'move' && parsed.data) {
-            const score = this.evaluatePosition({ ...positions, south: parsed.data }, walls);
-            return { type: 'move', data: parsed.data, score };
-          }
-
-          if (parsed?.type === 'wall' && parsed.data && wallsRemaining.south > 0) {
-            const wallData = parsed.data;
-            if (canPlaceWall(wallData, walls, positions)) {
-              const nextWalls = [...walls, wallData];
-              const score = this.evaluatePosition(positions, nextWalls);
-              return { type: 'wall', data: wallData, score };
-            }
-          }
-        }
-      } catch (error) {
-        console.warn('[QuoridorAI] Falling back to TypeScript hard AI', error);
-      }
-
-      return this.getBestMoveFromTypeScript(positions, walls, wallsRemaining.south, { fallback: true });
-    }
-
     return this.getBestMoveFromTypeScript(positions, walls, wallsRemaining.south);
   }
 
   private getBestMoveFromTypeScript(
     positions: Record<PlayerId, Position>,
     walls: Wall[],
-    wallsRemaining: number,
-    options: { fallback?: boolean } = {}
+    wallsRemaining: number
   ): AIMove | null {
 
     const edges = buildBlockedEdges(walls);
@@ -405,7 +373,7 @@ export class QuoridorAI {
         const withWall = [...walls, wall];
         let score = this.evaluatePosition(positions, withWall);
 
-        if (this.difficulty === 'hard' && !options.fallback) {
+        if (this.difficulty === 'hard') {
           // HARD++: if a wall meaningfully increases player's path, boost a lot
           const inc = this.isBlockingWall(wall, positions, walls);
           if (inc >= 2) score += 30;
@@ -424,7 +392,7 @@ export class QuoridorAI {
 
         score = this.addRandomness(score);
 
-        if (this.difficulty === 'hard' && !options.fallback && bestMove && score <= bestMove.score - 2) {
+        if (this.difficulty === 'hard' && bestMove && score <= bestMove.score - 2) {
           // HARD++: only choose wall if it’s clearly better than our best pawn move
           continue;
         }
