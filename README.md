@@ -16,16 +16,9 @@ This is an [Expo](https://expo.dev) project created with [`create-expo-app`](htt
    npx expo start
    ```
 
-## Build the Rust WASM module
+## Hard AI difficulty
 
-The Hard difficulty AI runs in Rust and needs to be compiled to WebAssembly before bundling the app. Install [wasm-pack](https://rustwasm.github.io/wasm-pack/installer/) and build the module into the expected output directory:
-
-```bash
-cd ai-rust
-wasm-pack build --target bundler --out-dir ./wasm-ai
-```
-
-The build command regenerates the JavaScript glue code (`ai_rust_bg.js`) and the binary payload (`ai_rust_bg.wasm`) that the React Native app loads at runtime.
+All AI difficulty levels run entirely in TypeScript. The Hard AI uses advanced heuristics for path racing, wall placement, and opponent modeling—no additional build steps are required.
 
 ### Connect Firebase services
 
