@@ -1,5 +1,5 @@
 import { useRouter } from 'expo-router';
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { ActivityIndicator, Alert, FlatList, Pressable, StyleSheet, View, ImageBackground } from 'react-native';
 
 import { ThemedText } from '@/components/themed-text';
@@ -36,15 +36,21 @@ function GameListItem({ name, players, maxPlayers, status, isPrivate, onPress, d
         {isPrivate && <ThemedText style={styles.privateFlag}>🔒 Private</ThemedText>}
       </View>
       <ThemedText style={styles.gamePlayers}>{players >= maxPlayers ? 'Full' : `${players}/${maxPlayers} players`}</ThemedText>
-      {/*{status ? <ThemedText style={styles.gameStatus}>{status}</ThemedText> : null}*/}
+      {status ? <ThemedText style={styles.gameStatus}>{status}</ThemedText> : null}
     </Pressable>
   );
 }
 
 export default function OnlineGamesScreen() {
-  const { games, loading, joinGame } = useGameLobby();
+  const { games, loading, joinGame, ensureAIGameAvailability } = useGameLobby();
   const router = useRouter();
   const [joiningGameId, setJoiningGameId] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (!loading) {
+      void ensureAIGameAvailability();
+    }
+  }, [ensureAIGameAvailability, games, loading]);
 
   const handleJoinGame = async (gameId: string, isPrivate?: boolean) => {
     if (isPrivate) {

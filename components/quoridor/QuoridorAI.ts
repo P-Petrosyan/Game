@@ -1,4 +1,5 @@
 import {
+  BOARD_SIZE,
   Position,
   Wall,
   PlayerId,
@@ -14,6 +15,21 @@ export interface AIMove {
   type: 'move' | 'wall';
   data: Position | Wall;
   score: number;
+}
+
+function mirrorPosition(position: Position): Position {
+  return {
+    row: BOARD_SIZE - 1 - position.row,
+    col: position.col,
+  };
+}
+
+function mirrorWall(wall: Wall): Wall {
+  return {
+    orientation: wall.orientation,
+    row: (BOARD_SIZE - 2) - wall.row,
+    col: wall.col,
+  };
 }
 
 export class QuoridorAI {
@@ -34,24 +50,35 @@ export class QuoridorAI {
 
   // ---------- utils ----------
   private getShortestPath(from: Position, targetRow: number, blockedEdges: Set<string>, otherPlayer?: Position): number {
-    const queue = [{ pos: from, dist: 0 }];
-    const visited = new Set<string>();
+    const queue: number[] = [];
+    const visited = new Uint8Array(BOARD_SIZE * BOARD_SIZE); // fast boolean array
+    const idx = (r: number, c: number) => r * BOARD_SIZE + c;
+
+    queue.push(idx(from.row, from.col));
+    const dist: number[] = new Array(BOARD_SIZE * BOARD_SIZE).fill(-1);
+    dist[idx(from.row, from.col)] = 0;
 
     while (queue.length > 0) {
-      const { pos, dist } = queue.shift()!;
-      const key = `${pos.row},${pos.col}`;
-      if (visited.has(key)) continue;
-      visited.add(key);
-      if (pos.row === targetRow) return dist;
+      const posIndex = queue.shift()!;
+      const row = Math.floor(posIndex / BOARD_SIZE);
+      const col = posIndex % BOARD_SIZE;
 
-      const moves = getValidPawnMoves(pos, otherPlayer || { row: -1, col: -1 }, blockedEdges);
+      if (row === targetRow) return dist[posIndex];
+
+      const moves = getValidPawnMoves({ row, col }, otherPlayer || { row: -1, col: -1 }, blockedEdges);
       for (const move of moves) {
-        const moveKey = `${move.row},${move.col}`;
-        if (!visited.has(moveKey)) queue.push({ pos: move, dist: dist + 1 });
+        const mIndex = idx(move.row, move.col);
+        if (!visited[mIndex]) {
+          visited[mIndex] = 1;
+          dist[mIndex] = dist[posIndex] + 1;
+          queue.push(mIndex);
+        }
       }
     }
+
     return 999;
   }
+
 
   // ---------- evaluation ----------
   private evaluatePosition(positions: Record<PlayerId, Position>, walls: Wall[]): number {
@@ -404,6 +431,43 @@ export class QuoridorAI {
     }
 
     return bestMove;
+  }
+
+  getBestMoveForSide(
+    side: PlayerId,
+    positions: Record<PlayerId, Position>,
+    walls: Wall[],
+    wallsRemaining: number,
+  ): AIMove | null {
+    if (side === 'south') {
+      return this.getBestMove(positions, walls, wallsRemaining);
+    }
+
+    const mirroredPositions: Record<PlayerId, Position> = {
+      north: mirrorPosition(positions.south),
+      south: mirrorPosition(positions.north),
+    };
+
+    const mirroredWalls = walls.map(mirrorWall);
+    const mirroredMove = this.getBestMove(mirroredPositions, mirroredWalls, wallsRemaining);
+
+    if (!mirroredMove) {
+      return null;
+    }
+
+    if (mirroredMove.type === 'move') {
+      const mirroredData = mirroredMove.data as Position;
+      return {
+        ...mirroredMove,
+        data: mirrorPosition(mirroredData),
+      };
+    }
+
+    const mirroredWallPlacement = mirroredMove.data as Wall;
+    return {
+      ...mirroredMove,
+      data: mirrorWall(mirroredWallPlacement),
+    };
   }
 
   getThinkingTime(): number {
