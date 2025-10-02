@@ -17,7 +17,10 @@
       "supportsTablet": true,
       "bundleIdentifier": "com.anonymous.pathblocker",
       "deploymentTarget": "18.0",
-      "googleServicesFile": "./GoogleService-Info.plist"
+      "googleServicesFile": "./GoogleService-Info.plist",
+      "infoPlist": {
+        "NSUserTrackingUsageDescription": "This identifier will be used to deliver personalized ads to you."
+      }
     },
     "android": {
       "adaptiveIcon": {

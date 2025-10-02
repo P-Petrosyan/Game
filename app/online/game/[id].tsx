@@ -1,5 +1,5 @@
 import { useLocalSearchParams, useRouter } from 'expo-router';
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { ActivityIndicator, Alert, Pressable, StyleSheet, View, ImageBackground } from 'react-native';
 
 import { ThemedText } from '@/components/themed-text';
@@ -11,7 +11,7 @@ import { useGameLobby } from '@/context/GameLobbyContext';
 import { useRealtimeGame } from '@/hooks/use-realtime-game';
 import { db } from '@/services/firebase';
 import {serverTimestamp, updateDoc, doc, deleteDoc} from 'firebase/firestore';
-
+import {BannerAd, BannerAdSize} from "react-native-google-mobile-ads";
 type RouteParams = {
   id?: string;
 };
@@ -20,6 +20,11 @@ type PlayerEntry = {
   id: string;
   displayName: string;
 };
+
+
+
+if (__DEV__) console. log('Running in dev mode')
+const adUnitId = "ca-app-pub-3940256099942544/2435281174";
 
 export default function GameSessionScreen() {
   const { id } = useLocalSearchParams<RouteParams>();
@@ -64,6 +69,7 @@ export default function GameSessionScreen() {
     return () => clearTimeout(deleteGame);
   }, [gameState?.oldGameId]);
 
+  // Countdown logic
   useEffect(() => {
     if (gameState?.status === 'starting' && countdown === 0) {
       setCountdown(3);
@@ -101,7 +107,7 @@ export default function GameSessionScreen() {
 
   const handleReady = async () => {
     if (!gameId || !user) return;
-    
+
     try {
       const gameRef = doc(db, 'games', gameId);
       await updateDoc(gameRef, {
@@ -109,11 +115,11 @@ export default function GameSessionScreen() {
         updatedAt: serverTimestamp(),
       });
       setIsReady(!isReady);
-      
+
       // Check if both players are ready
       const playerIds = Object.keys(gameState?.players || {});
       if (playerIds.length === 2) {
-        const allReady = playerIds.every(id => 
+        const allReady = playerIds.every(id =>
           gameState?.players?.[id]?.ready || (id === user.uid && !isReady)
         );
         if (allReady) {
@@ -199,7 +205,18 @@ export default function GameSessionScreen() {
             </Pressable>
           </View>
         ) : isGameStarted ? (
-          <MultiplayerQuoridorGame gameId={gameId} />
+          <View style={styles.gameContainer}>
+            <View style={styles.bannerContainer}>
+              <BannerAd
+                unitId={adUnitId}
+                size={BannerAdSize.ANCHORED_ADAPTIVE_BANNER}
+                requestOptions={{
+                  requestNonPersonalizedAdsOnly: true,
+                }}
+              />
+            </View>
+            <MultiplayerQuoridorGame gameId={gameId} />
+          </View>
         ) : isCountingDown ? (
           <View style={styles.countdownContainer}>
             <ThemedText type="title" style={styles.countdownText}>
@@ -286,9 +303,19 @@ export default function GameSessionScreen() {
                 </ThemedText>
               </Pressable>
             </View>
+            <View style={styles.bannerContainer}>
+              <BannerAd
+                unitId={adUnitId}
+                size={BannerAdSize.MEDIUM_RECTANGLE}
+                requestOptions={{
+                  requestNonPersonalizedAdsOnly: true,
+                }}
+              />
+            </View>
           </>
         )}
       </ThemedView>
+
     </ImageBackground>
   );
 }
@@ -305,9 +332,9 @@ const styles = StyleSheet.create({
   // },
   container: {
     flex: 1,
-    paddingTop: 62,
+    paddingTop: 52,
     paddingBottom: 32,
-    gap: 24,
+    gap: 14,
   },
   loadingState: {
     flex: 1,
@@ -338,10 +365,10 @@ const styles = StyleSheet.create({
   header: {
     alignItems: 'center',
     backgroundColor: Colors.surface,
-    paddingVertical: 16,
+    paddingVertical: 6,
     paddingHorizontal: 24,
     borderRadius: 16,
-    gap: 8,
+    gap: 2,
     borderWidth: 1,
     borderColor: Colors.outline,
     shadowColor: Colors.translucentDark,
@@ -359,7 +386,7 @@ const styles = StyleSheet.create({
     color: Colors.textMuted,
   },
   statusPill: {
-    marginTop: 4,
+    // marginTop: 4,
     borderRadius: 999,
     paddingHorizontal: 12,
     paddingVertical: 4,
@@ -374,8 +401,8 @@ const styles = StyleSheet.create({
   card: {
     borderRadius: 16,
     paddingHorizontal: 20,
-    paddingVertical: 18,
-    gap: 12,
+    paddingVertical: 8,
+    gap: 8,
     backgroundColor: Colors.surface,
     borderWidth: 1,
     borderColor: Colors.outline,
@@ -401,6 +428,12 @@ const styles = StyleSheet.create({
     fontSize: 12,
     fontWeight: '600',
     color: Colors.textMuted,
+  },
+  gameContainer: {
+  },
+  bannerContainer: {
+    flexDirection: "row",
+    justifyContent: "center"
   },
   countdownContainer: {
     flex: 1,

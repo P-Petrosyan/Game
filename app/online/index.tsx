@@ -1,11 +1,13 @@
 import { useRouter } from 'expo-router';
-import { useState } from 'react';
+import React, { useState } from 'react';
 import { ActivityIndicator, Alert, FlatList, Pressable, StyleSheet, View, ImageBackground } from 'react-native';
 
 import { ThemedText } from '@/components/themed-text';
 import { ThemedView } from '@/components/themed-view';
 import { Colors } from '@/constants/theme';
 import { useGameLobby } from '@/context/GameLobbyContext';
+import { BannerAd, BannerAdSize, TestIds } from "react-native-google-mobile-ads";
+
 
 type GameListItemProps = {
   name: string;
@@ -16,6 +18,8 @@ type GameListItemProps = {
   onPress: () => void;
   disabled?: boolean;
 };
+
+const adUnitId = __DEV__ ? TestIds.BANNER : "ca-app-pub-3940256099942544/2435281174";
 
 function GameListItem({ name, players, maxPlayers, status, isPrivate, onPress, disabled }: GameListItemProps) {
   return (
@@ -86,6 +90,15 @@ export default function OnlineGamesScreen() {
       style={styles.backgroundImage}
       resizeMode="cover"
     >
+      <View style={styles.bannerContainer}>
+        <BannerAd
+          unitId={adUnitId}
+          size={BannerAdSize.ANCHORED_ADAPTIVE_BANNER}
+          requestOptions={{
+            requestNonPersonalizedAdsOnly: true,
+          }}
+        />
+      </View>
       <ThemedView style={[styles.container, styles.overlay]}>
       <View style={styles.header}>
         <ThemedText type="title" style={styles.title}>
@@ -145,9 +158,13 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     paddingHorizontal: 24,
-    paddingTop: 24,
+    paddingTop: 4,
     paddingBottom: 16,
     gap: 16,
+  },
+  bannerContainer: {
+    flexDirection: "row",
+    justifyContent: "center"
   },
   header: {
     gap: 10,

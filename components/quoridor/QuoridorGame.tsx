@@ -4,6 +4,8 @@ import { Pressable, ScrollView, StyleSheet, View, ImageBackground } from 'react-
 import { ThemedText } from '@/components/themed-text';
 import { ThemedView } from '@/components/themed-view';
 import { Colors } from '@/constants/theme';
+import { soundManager } from '@/utils/sounds';
+import { BannerAd, BannerAdSize, TestIds } from "react-native-google-mobile-ads";
 
 import {
   INITIAL_POSITIONS,
@@ -46,6 +48,10 @@ const PLAYER_LABELS: Record<PlayerId, string> = {
   south: 'AI',
 };
 
+
+if (__DEV__) console. log('Running in dev mode')
+const adUnitId = "ca-app-pub-3940256099942544/2435281174";
+
 export function QuoridorGame() {
   const [positions, setPositions] = useState<Record<PlayerId, Position>>(() => ({
     north: { ...INITIAL_POSITIONS.north },
@@ -65,6 +71,14 @@ export function QuoridorGame() {
   const [isAiThinking, setIsAiThinking] = useState(false);
   const [difficulty, setDifficulty] = useState<Difficulty>('medium');
   const [ai] = useState(() => new QuoridorAI('medium'));
+
+  // Load sounds on component mount
+  useEffect(() => {
+    soundManager.loadSounds();
+    return () => {
+      soundManager.cleanup();
+    };
+  }, []);
 
   const opponent = getOpponent(currentPlayer);
 
@@ -86,6 +100,7 @@ export function QuoridorGame() {
           if (bestMove.type === 'move') {
             const nextPositions = {...positions, south: bestMove.data as Position};
             setPositions(nextPositions);
+            soundManager.playPawnMove();
             if (isWinningPosition('south', bestMove.data as Position)) {
               setWinner('south');
             } else {
@@ -94,6 +109,7 @@ export function QuoridorGame() {
           } else {
             setWalls(prev => [...prev, bestMove.data as Wall]);
             setWallsRemaining(prev => ({...prev, south: prev.south - 1}));
+            soundManager.playWallPlace();
             setCurrentPlayer('north');
           }
         }
@@ -321,6 +337,7 @@ export function QuoridorGame() {
     };
     nextPositions[currentPlayer] = target;
     setPositions(nextPositions);
+    soundManager.playPawnMove();
     setStatusMessage(null);
 
     if (isWinningPosition(currentPlayer, target)) {
@@ -354,6 +371,7 @@ export function QuoridorGame() {
       ...remaining,
       [currentPlayer]: remaining[currentPlayer] - 1,
     }));
+    soundManager.playWallPlace();
     setStatusMessage(
       `${PLAYER_LABELS[currentPlayer]} placed ${describeWallPlacement(wall)}. ${PLAYER_LABELS[opponent]} to play.`,
     );
@@ -367,6 +385,15 @@ export function QuoridorGame() {
       style={styles.backgroundImage}
       resizeMode="cover"
     >
+      <View style={styles.bannerContainer}>
+        <BannerAd
+          unitId={adUnitId}
+          size={BannerAdSize.ANCHORED_ADAPTIVE_BANNER}
+          requestOptions={{
+            requestNonPersonalizedAdsOnly: true,
+          }}
+        />
+      </View>
     {/*<ScrollView contentContainerStyle={styles.scrollContainer}>*/}
       <ThemedView style={styles.container}>
         {/*<ThemedText type="title" style={styles.title}>*/}
@@ -538,10 +565,10 @@ const styles = StyleSheet.create({
   //   paddingBottom: 32,
   // },
   container: {
-    gap: 10,
+    gap: 5,
     borderRadius: 20,
-    marginTop: 10,
-    padding: 16,
+    // marginTop: 10,
+    padding: 10,
     backgroundColor: Colors.surface,
     borderColor: Colors.outline,
     shadowColor: Colors.translucentDark,
@@ -549,6 +576,10 @@ const styles = StyleSheet.create({
     shadowOffset: { width: 0, height: 6 },
     shadowRadius: 16,
     elevation: 3,
+  },
+  bannerContainer: {
+    flexDirection: "row",
+    justifyContent: "center"
   },
   title: {
     textAlign: 'center',
@@ -588,13 +619,13 @@ const styles = StyleSheet.create({
   },
   summaryRow: {
     flexDirection: 'row',
-    gap: 12,
+    gap: 7,
     justifyContent: 'space-between',
   },
   playerSummary: {
     flex: 1,
     flexDirection: 'row',
-    gap: 12,
+    gap: 7,
     padding: 14,
     borderRadius: 14,
     borderWidth: 1,
@@ -620,7 +651,7 @@ const styles = StyleSheet.create({
     color: Colors.textMuted,
   },
   controlsSection: {
-    gap: 12,
+    gap: 8,
   },
   boardWrapper: {
     width: '100%',
@@ -633,7 +664,7 @@ const styles = StyleSheet.create({
     flexWrap: 'wrap',
   },
   wallControls: {
-    gap: 12,
+    gap: 8,
   },
   wallOptionsRow: {
     flexDirection: 'row',

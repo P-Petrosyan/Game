@@ -10,6 +10,7 @@ import { useAuth } from '@/context/AuthContext';
 import { useGameLobby } from '@/context/GameLobbyContext';
 import { useRealtimeGame } from '@/hooks/use-realtime-game';
 import { db } from '@/services/firebase';
+import { soundManager } from '@/utils/sounds';
 
 import {
   INITIAL_POSITIONS,
@@ -42,6 +43,14 @@ export function MultiplayerQuoridorGame({ gameId }: MultiplayerQuoridorGameProps
   const [turnTimer, setTurnTimer] = useState(30);
   const timerRef = useRef<NodeJS.Timeout | null>(null);
   const lastTurnChangeRef = useRef<number>(Date.now());
+
+  // Load sounds on component mount
+  useEffect(() => {
+    soundManager.loadSounds();
+    return () => {
+      soundManager.cleanup();
+    };
+  }, []);
 
   const gameData = gameState?.state as any;
   const positions = useMemo(
@@ -131,6 +140,8 @@ export function MultiplayerQuoridorGame({ gameId }: MultiplayerQuoridorGameProps
       status: hasWon ? 'completed' : 'playing',
     });
 
+    soundManager.playPawnMove();
+
     if (hasWon) {
       // Update stats for both players
       updatePlayerStats(user.uid, true); // Winner
@@ -157,6 +168,7 @@ export function MultiplayerQuoridorGame({ gameId }: MultiplayerQuoridorGameProps
       currentPlayer: getOpponent(myPlayerSide),
     });
 
+    soundManager.playWallPlace();
     setMode('move');
   };
 
@@ -798,30 +810,5 @@ const styles = StyleSheet.create({
     fontStyle: 'italic',
     color: Colors.textMuted,
     textAlign: 'center',
-  },
-  difficultyRow: {
-    flexDirection: 'row',
-    gap: 6,
-    marginTop: 8,
-  },
-  difficultyButton: {
-    paddingVertical: 3,
-    paddingHorizontal: 6,
-    borderRadius: 6,
-    borderColor: Colors.outline,
-    backgroundColor: Colors.surface,
-    alignItems: 'center',
-  },
-  activeDifficultyButton: {
-    backgroundColor: Colors.accent,
-    borderColor: Colors.accent,
-  },
-  difficultyButtonText: {
-    fontSize: 12,
-    fontWeight: '600',
-    color: Colors.text,
-  },
-  activeDifficultyButtonText: {
-    color: Colors.buttonText,
   },
 });

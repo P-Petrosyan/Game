@@ -186,7 +186,7 @@ export class QuoridorAI {
   }
 
   private addRandomness(score: number): number {
-    const randomFactor = this.difficulty === 'easy' ? 0.4 :
+    const randomFactor = this.difficulty === 'easy' ? 0.3 :
       this.difficulty === 'medium' ? 0.15 : 0.015; // HARD++ slightly less noise
     return score + (Math.random() - 0.5) * Math.abs(score) * randomFactor;
   }
@@ -393,7 +393,7 @@ export class QuoridorAI {
         score = this.addRandomness(score);
 
         if (this.difficulty === 'hard' && bestMove && score <= bestMove.score - 2) {
-          // HARD++: only choose wall if it’s clearly better than our best pawn move
+          // HARD++: only choose wall if it's clearly better than our best pawn move
           continue;
         }
 
@@ -407,10 +407,11 @@ export class QuoridorAI {
   }
 
   getThinkingTime(): number {
-    const baseTime = this.difficulty === 'easy' ? 200 :
-      this.difficulty === 'medium' ? 800 : 1900; // HARD++ slight bump
-    const variation = this.difficulty === 'easy' ? 200 :
-      this.difficulty === 'medium' ? 400 : 650;
+
+    const baseTime = this.difficulty === 'easy' ? 300 :
+      this.difficulty === 'medium' ? 1000 : 1400;
+    const variation = this.difficulty === 'easy' ? 300 :
+      this.difficulty === 'medium' ? 400 : 400;
     return baseTime + Math.random() * variation;
   }
 }
