@@ -1,6 +1,6 @@
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
-import { ActivityIndicator, Alert, Pressable, StyleSheet, View, ImageBackground } from 'react-native';
+import {ActivityIndicator, Alert, Pressable, StyleSheet, View, ImageBackground, Platform} from 'react-native';
 
 import { ThemedText } from '@/components/themed-text';
 import { ThemedView } from '@/components/themed-view';
@@ -11,7 +11,7 @@ import { useGameLobby } from '@/context/GameLobbyContext';
 import { useRealtimeGame } from '@/hooks/use-realtime-game';
 import { db } from '@/services/firebase';
 import {serverTimestamp, updateDoc, doc, deleteDoc} from 'firebase/firestore';
-import {BannerAd, BannerAdSize} from "react-native-google-mobile-ads";
+import {BannerAd, BannerAdSize, TestIds} from "react-native-google-mobile-ads";
 type RouteParams = {
   id?: string;
 };
@@ -21,10 +21,12 @@ type PlayerEntry = {
   displayName: string;
 };
 
-
-
-if (__DEV__) console. log('Running in dev mode')
-const adUnitId = "ca-app-pub-3940256099942544/2435281174";
+const adUnitId = __DEV__
+  ? TestIds.BANNER
+  : Platform.select({
+    ios: 'ca-app-pub-4468002211413891/5755554513',     // ✅ iOS banner ID
+    android: 'ca-app-pub-4468002211413891/9076987898', // ✅ Android banner ID
+  })!;
 
 export default function GameSessionScreen() {
   const { id } = useLocalSearchParams<RouteParams>();

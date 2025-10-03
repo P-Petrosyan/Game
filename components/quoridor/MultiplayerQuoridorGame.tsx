@@ -7,7 +7,7 @@ import { ThemedText } from '@/components/themed-text';
 import { ThemedView } from '@/components/themed-view';
 import { Colors } from '@/constants/theme';
 import { useAuth } from '@/context/AuthContext';
-import { useGameLobby } from '@/context/GameLobbyContext';
+import { AI_PLAYER_ID, useGameLobby } from '@/context/GameLobbyContext';
 import { useRealtimeGame } from '@/hooks/use-realtime-game';
 import { db } from '@/services/firebase';
 import { soundManager } from '@/utils/sounds';
@@ -27,6 +27,7 @@ import {
   isWinningPosition,
 } from './game-logic';
 import { QuoridorBoard } from './QuoridorBoard';
+import { QuoridorAI } from './QuoridorAI';
 
 type MultiplayerQuoridorGameProps = {
   gameId: string;
@@ -35,7 +36,7 @@ type MultiplayerQuoridorGameProps = {
 export function MultiplayerQuoridorGame({ gameId }: MultiplayerQuoridorGameProps) {
   const { user } = useAuth();
   const { gameState } = useRealtimeGame(gameId);
-  const { createGame } = useGameLobby();
+  const { createGame, leaveGame } = useGameLobby();
   const router = useRouter();
   const [mode, setMode] = useState<'move' | 'wall' | 'drag'>('move');
   const [wallOrientation, setWallOrientation] = useState<Orientation>('horizontal');
@@ -72,6 +73,24 @@ export function MultiplayerQuoridorGame({ gameId }: MultiplayerQuoridorGameProps
   const playerIds = gameState?.playerIds || [];
   const myPlayerId = user?.uid;
   const opponentId = playerIds.find(id => id !== user?.uid);
+  const isAIMatch = Boolean(gameState?.aiMatch?.enabled && gameState?.aiMatch?.aiPlayerId);
+  const aiPlayerId = isAIMatch ? gameState?.aiMatch?.aiPlayerId ?? null : null;
+  const aiPlayerSide: PlayerId | null = isAIMatch && aiPlayerId
+    ? playerIds[0] === aiPlayerId
+      ? 'north'
+      : playerIds[1] === aiPlayerId
+        ? 'south'
+        : null
+    : null;
+  const isAiOpponent = Boolean(aiPlayerId && opponentId === aiPlayerId);
+
+  const aiRef = useRef<QuoridorAI | null>(null);
+  const aiMoveInProgressRef = useRef(false);
+  const aiLastStateRef = useRef<string | null>(null);
+
+  if (!aiRef.current) {
+    aiRef.current = new QuoridorAI('hard');
+  }
 
   // Determine which side this player controls based on consistent playerIds array
   const myPlayerSide: PlayerId = myPlayerId === playerIds[0] ? 'north' : 'south';
@@ -91,6 +110,8 @@ export function MultiplayerQuoridorGame({ gameId }: MultiplayerQuoridorGameProps
 
   const updateGameState = useCallback(
     async (updates: any) => {
+      console.log('updates')
+      console.log(updates)
       if (!gameId) return;
       try {
         const gameRef = doc(db, 'games', gameId);
@@ -99,7 +120,7 @@ export function MultiplayerQuoridorGame({ gameId }: MultiplayerQuoridorGameProps
           updatedAt: serverTimestamp(),
         });
       } catch {
-        Alert.alert('Error', 'Failed to update game');
+        Alert.alert('Error', 'Failed to update game1');
       }
     },
     [gameData, gameId],
@@ -115,7 +136,7 @@ export function MultiplayerQuoridorGame({ gameId }: MultiplayerQuoridorGameProps
           updatedAt: serverTimestamp(),
         });
       } catch {
-        Alert.alert('Error', 'Failed to update game');
+        Alert.alert('Error', 'Failed to update game2');
       }
     },
     [gameId],
@@ -132,7 +153,7 @@ export function MultiplayerQuoridorGame({ gameId }: MultiplayerQuoridorGameProps
 
     const hasWon = isWinningPosition(myPlayerSide, target);
     const nextPlayer = hasWon ? myPlayerSide : getOpponent(myPlayerSide);
-
+    console.log('esa3')
     await updateGameState({
       positions: nextPositions,
       currentPlayer: nextPlayer,
@@ -145,7 +166,7 @@ export function MultiplayerQuoridorGame({ gameId }: MultiplayerQuoridorGameProps
     if (hasWon) {
       // Update stats for both players
       updatePlayerStats(user.uid, true); // Winner
-      if (opponentId) {
+      if (opponentId && opponentId !== AI_PLAYER_ID) {
         updatePlayerStats(opponentId, false); // Loser
       }
     }
@@ -161,7 +182,7 @@ export function MultiplayerQuoridorGame({ gameId }: MultiplayerQuoridorGameProps
       ...wallsRemaining,
       [myPlayerSide]: wallsRemaining[myPlayerSide] - 1,
     };
-
+    console.log('esa4')
     await updateGameState({
       walls: nextWalls,
       wallsRemaining: nextWallsRemaining,
@@ -179,6 +200,7 @@ export function MultiplayerQuoridorGame({ gameId }: MultiplayerQuoridorGameProps
     const currentPlayers = Object.keys(gameState.players || {});
     if (currentPlayers.length === 1 && currentPlayers.includes(user.uid)) {
       if (!winner && gameState.status === 'playing') {
+        console.log('eschi')
         updateGameState({
           winner: myPlayerSide,
           gameEndReason: 'opponent_left',
@@ -239,17 +261,22 @@ export function MultiplayerQuoridorGame({ gameId }: MultiplayerQuoridorGameProps
       setTurnTimer(prev => {
         if (prev <= 1) {
           // Time's up - current player loses
+          console.log('ese chi')
           updateGameState({
             winner: getOpponent(currentPlayer),
             gameEndReason: 'timeout',
             status: 'completed',
           });
           if (currentPlayer === myPlayerSide) {
-            updatePlayerStats(opponentId, true);
+            if (opponentId && opponentId !== AI_PLAYER_ID) {
+              updatePlayerStats(opponentId, true);
+            }
             updatePlayerStats(user.uid, false);
           } else {
             updatePlayerStats(user.uid, true);
-            updatePlayerStats(opponentId, false);
+            if (opponentId && opponentId !== AI_PLAYER_ID) {
+              updatePlayerStats(opponentId, false);
+            }
           }
           return 0;
         }
@@ -263,9 +290,13 @@ export function MultiplayerQuoridorGame({ gameId }: MultiplayerQuoridorGameProps
         timerRef.current = null;
       }
     };
-  }, [winner, currentPlayer, isMyTurn]);
+  }, [currentPlayer, isMyTurn, myPlayerSide, opponentId, updateGameState, user?.uid, winner]);
 
   const updatePlayerStats = useCallback(async (playerId: string, isWinner: boolean) => {
+    if (!playerId || playerId === AI_PLAYER_ID) {
+      return;
+    }
+
     try {
       const userRef = doc(db, 'users', playerId);
       const points = isWinner ? 100 : 10;
@@ -290,16 +321,108 @@ export function MultiplayerQuoridorGame({ gameId }: MultiplayerQuoridorGameProps
     }
   }, []);
 
+  useEffect(() => {
+    if (!isAiOpponent || !aiPlayerSide || winner || !gameId) {
+      return;
+    }
+
+    if (currentPlayer !== aiPlayerSide) {
+      aiMoveInProgressRef.current = false;
+      return;
+    }
+
+    const stateKey = JSON.stringify({ positions, walls, wallsRemaining, currentPlayer });
+    if (aiLastStateRef.current === stateKey || aiMoveInProgressRef.current) {
+      return;
+    }
+
+    const aiInstance = aiRef.current;
+    if (!aiInstance) {
+      return;
+    }
+
+    aiLastStateRef.current = stateKey;
+    aiMoveInProgressRef.current = true;
+
+    const thinkingDelay = aiInstance.getThinkingTime();
+    const timer = setTimeout(async () => {
+      const aiWallsLeft = wallsRemaining[aiPlayerSide] ?? 0;
+      console.log('aiPlayerSide, positions, walls, aiWallsLeft')
+      console.log(aiPlayerSide, positions, walls, aiWallsLeft)
+      const move = aiInstance.getBestMoveForSide(aiPlayerSide, positions, walls, aiWallsLeft);
+      console.log('move')
+      console.log(move)
+      aiMoveInProgressRef.current = false;
+
+      if (!move) {
+        return;
+      }
+
+      if (move.type === 'move') {
+        const target = move.data as Position;
+        const nextPositions = { ...positions, [aiPlayerSide]: target };
+        const hasWon = isWinningPosition(aiPlayerSide, target);
+        const nextPlayer = hasWon ? aiPlayerSide : getOpponent(aiPlayerSide);
+        console.log('esa?')
+        await updateGameState({
+          positions: nextPositions,
+          currentPlayer: nextPlayer,
+          winner: hasWon ? aiPlayerSide : null,
+          status: hasWon ? 'completed' : 'playing',
+        });
+
+        if (hasWon && user?.uid) {
+          updatePlayerStats(user.uid, false);
+        }
+      } else {
+        const wallPlacement = move.data as Wall;
+        console.log('walls')
+        console.log(walls)
+        console.log(wallPlacement)
+        const nextWalls = [...walls, wallPlacement];
+        const nextWallsRemaining = {
+          ...wallsRemaining,
+          [aiPlayerSide]: Math.max(0, (wallsRemaining[aiPlayerSide] ?? 0) - 1),
+        };
+        console.log('esa2 /')
+        await updateGameState({
+          walls: nextWalls,
+          wallsRemaining: nextWallsRemaining,
+          currentPlayer: getOpponent(aiPlayerSide),
+        });
+      }
+    }, thinkingDelay);
+
+    return () => {
+      clearTimeout(timer);
+      aiMoveInProgressRef.current = false;
+    };
+  }, [
+    aiPlayerSide,
+    currentPlayer,
+    gameId,
+    isAiOpponent,
+    myPlayerSide,
+    opponentId,
+    positions,
+    updateGameState,
+    updatePlayerStats,
+    user?.uid,
+    walls,
+    wallsRemaining,
+    winner,
+  ]);
+
   const handleSurrender = async (timeOut = false) => {
     if (timeOut) {
       await updateGameState({
         winner: getOpponent(myPlayerSide),
         gameEndReason: 'timeout',
       });
-      if (opponentId) {
+      if (opponentId && opponentId !== AI_PLAYER_ID) {
         updatePlayerStats(opponentId, true);
-        updatePlayerStats(user.uid, false);
       }
+      updatePlayerStats(user.uid, false);
       return;
     }
 
@@ -316,10 +439,10 @@ export function MultiplayerQuoridorGame({ gameId }: MultiplayerQuoridorGameProps
               winner: getOpponent(myPlayerSide),
               gameEndReason: 'surrender',
             });
-            if (opponentId) {
+            if (opponentId && opponentId !== AI_PLAYER_ID) {
               updatePlayerStats(opponentId, true);
-              updatePlayerStats(user.uid, false);
             }
+            updatePlayerStats(user.uid, false);
           },
         },
       ]
@@ -353,7 +476,9 @@ export function MultiplayerQuoridorGame({ gameId }: MultiplayerQuoridorGameProps
         // Add opponent to the new game immediately and start playing
         const gameRef = doc(db, 'games', newGame.id);
         const opponentName = gameState?.players?.[opponentId]?.displayName || 'Player';
-        await updateDoc(gameRef, {
+        const opponentReady = Boolean(gameState?.players?.[opponentId]?.ready);
+
+        const updates: Record<string, unknown> = {
           playerIds: [user.uid, opponentId],
           playerCount: 2,
           status: 'playing',
@@ -361,9 +486,24 @@ export function MultiplayerQuoridorGame({ gameId }: MultiplayerQuoridorGameProps
           [`players.${opponentId}`]: {
             displayName: opponentName,
             joinedAt: serverTimestamp(),
+            ready: isAiOpponent ? true : opponentReady,
           },
           updatedAt: serverTimestamp(),
-        });
+        };
+
+        if (isAiOpponent && aiPlayerId) {
+          updates.hostId = aiPlayerId;
+          updates.hostName = opponentName;
+          updates[`players.${user.uid}.ready`] = true;
+          updates.aiMatch = {
+            enabled: true,
+            difficulty: 'hard',
+            aiPlayerId,
+            aiName: opponentName,
+          };
+        }
+
+        await updateDoc(gameRef, updates);
 
         // Store new game ID for redirection
         await updateGame({
@@ -376,10 +516,37 @@ export function MultiplayerQuoridorGame({ gameId }: MultiplayerQuoridorGameProps
     }
   };
 
-  const handleLeaveGame = () => {
+  useEffect(() => {
+    if (!isAiOpponent || !aiPlayerId || !winner) {
+      return;
+    }
+
+    if (gameState?.playAgainVotes?.[aiPlayerId]) {
+      return;
+    }
+
+    const castVote = async () => {
+      try {
+        await updateGame({
+          [`playAgainVotes.${aiPlayerId}`]: true,
+        });
+      } catch (error) {
+        console.error('Failed to record AI rematch vote:', error);
+      }
+    };
+
+    void castVote();
+  }, [aiPlayerId, gameState?.playAgainVotes, isAiOpponent, updateGame, winner]);
+
+  const handleLeaveGame = useCallback(async () => {
     router.replace('/online');
-    deleteDoc(doc(db, 'games', gameId));
-  };
+    // deleteDoc(doc(db, 'games', gameId));
+    try {
+      await leaveGame(gameId);
+    } catch (error) {
+      console.error('Failed to leave game:', error);
+    }
+  }, [gameId, leaveGame, router]);
 
   const playerColors = useMemo(
     () => ({
