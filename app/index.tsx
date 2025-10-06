@@ -8,6 +8,16 @@ import { Colors } from '@/constants/theme';
 import { useAuth } from '@/context/AuthContext';
 import { useUserStats } from '@/hooks/use-user-stats';
 
+const formatNumber = (num: number): string => {
+  if (num >= 1000000) {
+    return (num / 1000000).toFixed(1).replace(/\.0$/, '') + 'm';
+  }
+  if (num >= 1000) {
+    return (num / 1000).toFixed(1).replace(/\.0$/, '') + 'k';
+  }
+  return num.toString();
+};
+
 const actions = [
   {
     key: 'local',
@@ -87,7 +97,7 @@ export default function HomeScreen() {
         <View style={styles.content}>
           <View style={styles.header}>
             <ThemedText type="title" style={styles.title}>
-              Quoridor Online
+              Path Blocker
             </ThemedText>
             {/*<ThemedText style={styles.subtitle}>*/}
             {/*  Choose how you want to play and jump into the action.*/}
@@ -113,7 +123,7 @@ export default function HomeScreen() {
                   <ThemedText style={styles.statLabel}>Level</ThemedText>
                 </View>
                 <View style={styles.statItem}>
-                  <ThemedText style={styles.statValue}>{statsLoading ? '...' : stats?.points || 0}</ThemedText>
+                  <ThemedText style={styles.statValue}>{statsLoading ? '...' : formatNumber(stats?.points || 0)}</ThemedText>
                   <ThemedText style={styles.statLabel}>Points</ThemedText>
                 </View>
                 <View style={styles.statItem}>

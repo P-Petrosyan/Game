@@ -1,11 +1,11 @@
 {
   "expo": {
-    "name": "Quoridor Online",
-    "slug": "quoridor-online",
+    "name": "Path Blocker Online",
+    "slug": "path-blocker",
     "version": "1.0.0",
     "orientation": "portrait",
-    "icon": "./assets/images/icon4.png",
-    "scheme": "quoridoronline",
+    "icon": "./assets/images/icon1.png",
+    "scheme": "pathblocker",
     "extra": {
       "eas": {
         "projectId": "project-344529006287"
@@ -18,25 +18,24 @@
       "bundleIdentifier": "com.anonymous.pathblocker",
       "deploymentTarget": "18.0",
       "googleServicesFile": "./GoogleService-Info.plist",
+      "buildNumber": "1.0.0",
       "infoPlist": {
-        "GADApplicationIdentifier": "ca-app-pub-4468002211413891~5060585795",
         "NSUserTrackingUsageDescription": "This identifier will be used to deliver personalized ads to you."
       }
     },
     "android": {
       "adaptiveIcon": {
-        "backgroundColor": "#E6F4FE",
-        "foregroundImage": "./assets/images/icon4.png",
-        "backgroundImage": "./assets/images/icon4.png",
-        "monochromeImage": "./assets/images/icon4.png"
+        "foregroundImage": "./assets/images/icon1.png",
+        "backgroundColor": "#E6F4FE"
       },
       "edgeToEdgeEnabled": true,
       "predictiveBackGestureEnabled": false,
-      "package": "com.anonymous.pathblocker"
+      "package": "com.anonymous.pathblocker",
+      "versionCode": 1
     },
     "web": {
       "output": "static",
-      "favicon": "./assets/images/icon4.png"
+      "favicon": "./assets/images/icon1.png"
     },
     "plugins": [
       "expo-router",
@@ -49,6 +48,13 @@
           "resizeMode": "cover",
           "backgroundColor": "#ffffff"
 
+        }
+      ],
+      [
+        "react-native-google-mobile-ads",
+        {
+          "android_app_id": "ca-app-pub-4468002211413891~1278388928",
+          "ios_app_id": "ca-app-pub-4468002211413891~5060585795"
         }
       ]
     ],

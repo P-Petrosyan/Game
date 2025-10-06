@@ -83,9 +83,9 @@ const GameLobbyContext = createContext<GameLobbyContextValue | undefined>(undefi
 
 export const AI_PLAYER_ID = 'quori_ai_hard';
 export const AI_DISPLAY_NAME = 'Lio';
-const AI_GAME_BASE_NAME = 'Quick Match';
-const MAX_OPEN_AI_GAMES = 2;
-const MAX_JOINABLE_GAMES = 2;
+const AI_GAME_BASE_NAME = 'AI';
+const MAX_OPEN_AI_GAMES = 1;
+const MAX_JOINABLE_GAMES = 1;
 const AI_SEED_LOCK_DURATION_MS = 15_000;
 
 type AiSeedState = {
@@ -185,7 +185,7 @@ export function GameLobbyProvider({ children }: { children: ReactNode }) {
   }, []);
 
   const createAIGame = useCallback(async () => {
-    const randomSuffix = Math.floor(100 + Math.random() * 900);
+    const randomSuffix = Math.floor(10 + Math.random() * 90);
     const name = `${AI_GAME_BASE_NAME} ${randomSuffix}`;
 
     const aiGame: FirestoreLobbyGame = {

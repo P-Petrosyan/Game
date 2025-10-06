@@ -1,10 +1,12 @@
 import { useRouter } from 'expo-router';
 import React, { useEffect, useState } from 'react';
-import {ActivityIndicator, Alert, FlatList, Pressable, StyleSheet, View, ImageBackground, Platform} from 'react-native';
+import {ActivityIndicator, FlatList, Pressable, StyleSheet, View, ImageBackground, Platform, TextInput} from 'react-native';
 
 import { ThemedText } from '@/components/themed-text';
 import { ThemedView } from '@/components/themed-view';
+import { CustomAlert } from '@/components/ui/CustomAlert';
 import { Colors } from '@/constants/theme';
+import { useCustomAlert } from '@/hooks/use-custom-alert';
 import { useGameLobby } from '@/context/GameLobbyContext';
 import { BannerAd, BannerAdSize, TestIds } from "react-native-google-mobile-ads";
 
@@ -52,8 +54,10 @@ function GameListItem({ name, players, maxPlayers, status, isPrivate, onPress, d
 
 export default function OnlineGamesScreen() {
   const { games, loading, joinGame, ensureAIGameAvailability } = useGameLobby();
+  const { alertState, showAlert, hideAlert } = useCustomAlert();
   const router = useRouter();
   const [joiningGameId, setJoiningGameId] = useState<string | null>(null);
+  const [gameCode, setGameCode] = useState('');
 
   useEffect(() => {
     if (!loading) {
@@ -61,25 +65,49 @@ export default function OnlineGamesScreen() {
     }
   }, [ensureAIGameAvailability, games, loading]);
 
+  const handleJoinPrivateGame = async (gameId: string, code: string) => {
+    setJoiningGameId(gameId);
+    try {
+      await joinGame(gameId, code);
+      router.push({ pathname: '/online/game/[id]', params: { id: gameId } });
+    } catch (error) {
+      const message = error instanceof Error ? error.message : 'Unable to join this game.';
+      showAlert({
+        title: 'Join Game',
+        message,
+        buttons: [{ text: 'OK', style: 'default' }],
+      });
+    } finally {
+      setJoiningGameId(null);
+      setGameCode('');
+    }
+  };
+
   const handleJoinGame = async (gameId: string, isPrivate?: boolean) => {
     if (isPrivate) {
-      Alert.prompt(
-        'Private Game',
-        'Enter the game code:',
-        async (code) => {
-          if (!code) return;
-          setJoiningGameId(gameId);
-          try {
-            await joinGame(gameId, code);
-            router.push({ pathname: '/online/game/[id]', params: { id: gameId } });
-          } catch (error) {
-            const message = error instanceof Error ? error.message : 'Unable to join this game.';
-            Alert.alert('Join Game', message);
-          } finally {
-            setJoiningGameId(null);
-          }
-        }
-      );
+      showAlert({
+        title: 'Private Game',
+        message: 'Enter the numeric game code:',
+        buttons: [
+          { text: 'Cancel', style: 'cancel' },
+          {
+            text: 'Join',
+            style: 'default',
+            onPress: (inputValue) => {
+              const numericCode = (inputValue || '').replace(/[^0-9]/g, '');
+              if (numericCode.length > 0) {
+                handleJoinPrivateGame(gameId, numericCode);
+              } else {
+                showAlert({
+                  title: 'Invalid Code',
+                  message: 'Please enter numbers only.',
+                  buttons: [{ text: 'OK', style: 'default' }],
+                });
+              }
+            },
+          },
+        ],
+      });
       return;
     }
 
@@ -89,14 +117,18 @@ export default function OnlineGamesScreen() {
       router.push({ pathname: '/online/game/[id]', params: { id: gameId } });
     } catch (error) {
       const message = error instanceof Error ? error.message : 'Unable to join this game. Please try again.';
-      Alert.alert('Join Game', message);
+      showAlert({
+        title: 'Join Game',
+        message,
+        buttons: [{ text: 'OK', style: 'default' }],
+      });
     } finally {
       setJoiningGameId(null);
     }
   };
 
   return (
-    <ImageBackground 
+    <ImageBackground
       source={require('@/assets/backgrounds/onlineScreen.webp')}
       style={styles.backgroundImage}
       resizeMode="cover"
@@ -154,6 +186,18 @@ export default function OnlineGamesScreen() {
           }
         />
       )}
+
+      <CustomAlert
+        visible={alertState.visible}
+        title={alertState.options?.title || ''}
+        message={alertState.options?.message || ''}
+        buttons={alertState.options?.buttons || []}
+        onDismiss={hideAlert}
+        showInput={alertState.options?.title === 'Private Game'}
+        inputValue={gameCode}
+        onInputChange={setGameCode}
+        inputPlaceholder="Enter numbers only"
+      />
       </ThemedView>
     </ImageBackground>
   );

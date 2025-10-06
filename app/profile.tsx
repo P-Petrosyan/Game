@@ -1,8 +1,8 @@
 import { useState, useEffect } from 'react';
 import { ScrollView, Pressable, StyleSheet, View, TextInput, Alert, ImageBackground } from 'react-native';
 import { useRouter } from 'expo-router';
-import { updateProfile, updatePassword, reauthenticateWithCredential, EmailAuthProvider } from 'firebase/auth';
-import { doc, updateDoc } from 'firebase/firestore';
+import { updatePassword, reauthenticateWithCredential, EmailAuthProvider, updateProfile } from 'firebase/auth';
+import { doc, updateDoc, query, collection, where, getDocs } from 'firebase/firestore';
 
 import { ThemedText } from '@/components/themed-text';
 import { ThemedView } from '@/components/themed-view';
@@ -11,11 +11,21 @@ import { useAuth } from '@/context/AuthContext';
 import { db } from '@/services/firebase';
 import { useUserStats } from '@/hooks/use-user-stats';
 
+const formatNumber = (num: number): string => {
+  if (num >= 1000000) {
+    return (num / 1000000).toFixed(1).replace(/\.0$/, '') + 'm';
+  }
+  if (num >= 1000) {
+    return (num / 1000).toFixed(1).replace(/\.0$/, '') + 'k';
+  }
+  return num.toString();
+};
+
 export default function ProfileScreen() {
   const router = useRouter();
   const { user, logout } = useAuth();
   const { stats } = useUserStats();
-  const [displayName, setDisplayName] = useState(user?.displayName || '');
+  const [username, setUsername] = useState(user?.displayName || '');
   const [currentPassword, setCurrentPassword] = useState('');
   const [newPassword, setNewPassword] = useState('');
   const [showOldPassword, setShowOldPassword] = useState(false);
@@ -28,16 +38,29 @@ export default function ProfileScreen() {
     }
   }, [user, router]);
 
-  const handleUpdateProfile = async () => {
-    if (!user || !displayName.trim()) return;
+
+
+  const handleUpdateUsername = async () => {
+    if (!user || !username.trim() || username.trim() === user.displayName) return;
     
     setUpdating(true);
     try {
-      await updateProfile(user, { displayName: displayName.trim() });
-      await updateDoc(doc(db, 'users', user.uid), { displayName: displayName.trim() });
-      Alert.alert('Success', 'Display name updated');
+      const usernameQuery = query(collection(db, 'users'), where('username', '==', username.trim()));
+      const usernameSnapshot = await getDocs(usernameQuery);
+      
+      if (!usernameSnapshot.empty) {
+        Alert.alert('Error', 'Username already exists');
+        return;
+      }
+
+      await updateProfile(user, { displayName: username.trim() });
+      await updateDoc(doc(db, 'users', user.uid), { 
+        displayName: username.trim(),
+        username: username.trim()
+      });
+      Alert.alert('Success', 'Username updated');
     } catch (error) {
-      Alert.alert('Error', 'Failed to update display name');
+      Alert.alert('Error', 'Failed to update username');
     } finally {
       setUpdating(false);
     }
@@ -84,21 +107,16 @@ export default function ProfileScreen() {
         <ThemedText type="title" style={styles.title}>Profile</ThemedText>
         
         <View style={styles.section}>
-          <ThemedText style={styles.label}>Display Name</ThemedText>
+          <ThemedText style={styles.label}>Username</ThemedText>
           <TextInput
             style={styles.input}
-            value={displayName}
-            onChangeText={setDisplayName}
-            placeholder="Enter display name"
+            value={username}
+            onChangeText={setUsername}
+            placeholder="Enter username"
           />
-          <Pressable style={styles.button} onPress={handleUpdateProfile} disabled={updating}>
-            <ThemedText style={styles.buttonText}>Update Name</ThemedText>
+          <Pressable style={styles.button} onPress={handleUpdateUsername} disabled={updating}>
+            <ThemedText style={styles.buttonText}>Update Username</ThemedText>
           </Pressable>
-        </View>
-
-        <View style={styles.section}>
-          <ThemedText style={styles.label}>Email</ThemedText>
-          <ThemedText style={styles.value}>{user.email}</ThemedText>
         </View>
 
         <View style={styles.section}>
@@ -139,7 +157,7 @@ export default function ProfileScreen() {
                 <ThemedText style={styles.statLabel}>Level</ThemedText>
               </View>
               <View style={styles.statItem}>
-                <ThemedText style={styles.statValue}>{stats.points}</ThemedText>
+                <ThemedText style={styles.statValue}>{formatNumber(stats.points)}</ThemedText>
                 <ThemedText style={styles.statLabel}>Points</ThemedText>
               </View>
               <View style={styles.statItem}>

@@ -16,17 +16,17 @@ import { Colors } from '@/constants/theme';
 import { useAuth } from '@/context/AuthContext';
 
 export default function LoginScreen() {
-  const [email, setEmail] = useState('');
+  const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
   const [submitting, setSubmitting] = useState(false);
   const router = useRouter();
-  const { login, loginWithGoogle } = useAuth();
+  const { login } = useAuth();
   const accentColor = Colors.accent;
   const textColor = Colors.text;
   const buttonTextColor = Colors.buttonText;
   const placeholderColor = 'rgba(45, 27, 16, 0.45)';
 
-  const isDisabled = email.trim().length === 0 || password.trim().length === 0;
+  const isDisabled = username.trim().length === 0 || password.trim().length === 0;
 
   const handleLogin = async () => {
     if (submitting || isDisabled) {
@@ -36,7 +36,7 @@ export default function LoginScreen() {
     setSubmitting(true);
 
     try {
-      await login({ email: email.trim(), password });
+      await login({ username: username.trim(), password });
       router.replace('/');
     } catch (authError) {
       const message = authError instanceof Error ? authError.message : 'Unable to sign in. Double-check your details.';
@@ -58,21 +58,20 @@ export default function LoginScreen() {
               Welcome back
             </ThemedText>
             <ThemedText style={styles.subtitle}>
-              Sign in to access online lobbies, cloud saves, and synced matches.
+              Sign in to access online lobbies and multiplayer games.
             </ThemedText>
           </View>
           <View style={styles.form}>
-          <ThemedText type="defaultSemiBold">Email address</ThemedText>
+          <ThemedText type="defaultSemiBold">Username</ThemedText>
           <TextInput
-            value={email}
-            onChangeText={setEmail}
+            value={username}
+            onChangeText={setUsername}
             autoCapitalize="none"
-            keyboardType="email-address"
-            placeholder="you@example.com"
+            placeholder="Enter your username"
             placeholderTextColor={placeholderColor}
             style={[styles.input, { borderColor: accentColor, color: textColor }]}
             returnKeyType="next"
-            textContentType="emailAddress"
+            textContentType="username"
             onSubmitEditing={() => {
               if (password.trim().length === 0) {
                 return;
@@ -106,28 +105,7 @@ export default function LoginScreen() {
               {submitting ? 'Signing in…' : 'Sign in'}
             </ThemedText>
           </Pressable>
-          <View style={styles.divider}>
-            <View style={[styles.dividerLine, { backgroundColor: textColor }]} />
-            <ThemedText style={styles.dividerText}>or</ThemedText>
-            <View style={[styles.dividerLine, { backgroundColor: textColor }]} />
-          </View>
-          <Pressable
-            onPress={async () => {
-              try {
-                await loginWithGoogle();
-                router.replace('/');
-              } catch {
-                Alert.alert('Google Sign-in failed', 'Please try again.');
-              }
-            }}
-            style={({ pressed }) => [
-              styles.googleButton,
-              { borderColor: accentColor, opacity: pressed ? 0.85 : 1 },
-            ]}>
-            <ThemedText type="defaultSemiBold" style={[styles.googleButtonText, { color: textColor }]}>
-              Continue with Google
-            </ThemedText>
-          </Pressable>
+
           </View>
         </View>
         <View style={styles.footer}>
@@ -201,29 +179,7 @@ const styles = StyleSheet.create({
   submitButtonText: {
     textAlign: 'center',
   },
-  divider: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 12,
-  },
-  dividerLine: {
-    flex: 1,
-    height: 1,
-    opacity: 0.3,
-  },
-  dividerText: {
-    opacity: 0.6,
-  },
-  googleButton: {
-    borderWidth: 1,
-    borderRadius: 12,
-    paddingVertical: 14,
-    alignItems: 'center',
-    backgroundColor: Colors.surfaceMuted,
-  },
-  googleButtonText: {
-    textAlign: 'center',
-  },
+
   footer: {
     flexDirection: 'row',
     justifyContent: 'center',

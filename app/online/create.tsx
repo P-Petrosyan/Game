@@ -86,6 +86,8 @@ export default function CreateGameScreen() {
             placeholder="Leave empty for public game"
             placeholderTextColor={placeholderColor}
             style={[styles.input, { borderColor: accentColor, color: textColor }]}
+            keyboardType="numeric"
+            maxLength={6}
             returnKeyType="done"
             onSubmitEditing={handleCreate}
           />

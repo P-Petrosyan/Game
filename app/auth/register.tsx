@@ -16,8 +16,7 @@ import { Colors } from '@/constants/theme';
 import { useAuth } from '@/context/AuthContext';
 
 export default function RegisterScreen() {
-  const [displayName, setDisplayName] = useState('');
-  const [email, setEmail] = useState('');
+  const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
   const [submitting, setSubmitting] = useState(false);
   const router = useRouter();
@@ -27,7 +26,7 @@ export default function RegisterScreen() {
   const buttonTextColor = Colors.buttonText;
   const placeholderColor = 'rgba(45, 27, 16, 0.45)';
 
-  const isDisabled = email.trim().length === 0 || password.trim().length === 0;
+  const isDisabled = username.trim().length === 0 || password.trim().length === 0;
 
   const handleRegister = async () => {
     if (submitting || isDisabled) {
@@ -37,7 +36,7 @@ export default function RegisterScreen() {
     setSubmitting(true);
 
     try {
-      await register({ email: email.trim(), password, displayName: displayName.trim() || undefined });
+      await register({ username: username.trim(), password });
       router.replace('/');
     } catch (authError) {
       const message = authError instanceof Error ? authError.message : 'Unable to create the account right now.';
@@ -59,31 +58,20 @@ export default function RegisterScreen() {
               Create an account
             </ThemedText>
             <ThemedText style={styles.subtitle}>
-              Store your progress online and manage multiplayer games from any device.
+              Join the community and compete in multiplayer games.
             </ThemedText>
           </View>
           <View style={styles.form}>
-          <ThemedText type="defaultSemiBold">Display name</ThemedText>
+          <ThemedText type="defaultSemiBold">Username</ThemedText>
           <TextInput
-            value={displayName}
-            onChangeText={setDisplayName}
-            placeholder="Arcade Champion"
-            placeholderTextColor={placeholderColor}
-            style={[styles.input, { borderColor: accentColor, color: textColor }]}
-            returnKeyType="next"
-            textContentType="name"
-          />
-          <ThemedText type="defaultSemiBold">Email address</ThemedText>
-          <TextInput
-            value={email}
-            onChangeText={setEmail}
+            value={username}
+            onChangeText={setUsername}
             autoCapitalize="none"
-            keyboardType="email-address"
-            placeholder="you@example.com"
+            placeholder="Choose a username"
             placeholderTextColor={placeholderColor}
             style={[styles.input, { borderColor: accentColor, color: textColor }]}
             returnKeyType="next"
-            textContentType="emailAddress"
+            textContentType="username"
           />
           <ThemedText type="defaultSemiBold">Password</ThemedText>
           <TextInput

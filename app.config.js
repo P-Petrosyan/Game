@@ -1,0 +1,43 @@
+import withAdmobID from "./plugins/with-admob-id";
+
+export default {
+    expo: {
+        name: "Path Blocker Online",
+        slug: "path-blocker",
+        version: "1.0.0",
+        orientation: "portrait",
+        icon: "./assets/images/icon1.png",
+        scheme: "pathblocker",
+        userInterfaceStyle: "automatic",
+        newArchEnabled: true,
+
+        ios: {
+            supportsTablet: true,
+            bundleIdentifier: "com.anonymous.pathblocker",
+            deploymentTarget: "18.0",
+            googleServicesFile: "./GoogleService-Info.plist",
+        },
+
+        android: {
+            package: "com.anonymous.pathblocker",
+        },
+
+        plugins: [
+            "expo-router",
+            [
+                "react-native-google-mobile-ads",
+                {
+                    android_app_id: "ca-app-pub-4468002211413891~1278388928",
+                    ios_app_id: "ca-app-pub-4468002211413891~5060585795",
+                },
+            ],
+            [
+                withAdmobID,
+                {
+                    androidAppId: "ca-app-pub-4468002211413891~1278388928",
+                    iosAppId: "ca-app-pub-4468002211413891~5060585795",
+                },
+            ],
+        ],
+    },
+};

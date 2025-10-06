@@ -1,13 +1,15 @@
 import React, { useCallback, useEffect, useMemo, useState, useRef } from 'react';
-import { Alert, Pressable, ScrollView, StyleSheet, View } from 'react-native';
+import { Pressable, ScrollView, StyleSheet, View } from 'react-native';
 import { doc, updateDoc, serverTimestamp, increment, getDoc, deleteDoc } from 'firebase/firestore';
 import { useRouter } from 'expo-router';
 
 import { ThemedText } from '@/components/themed-text';
 import { ThemedView } from '@/components/themed-view';
+import { CustomAlert } from '@/components/ui/CustomAlert';
 import { Colors } from '@/constants/theme';
 import { useAuth } from '@/context/AuthContext';
 import { AI_PLAYER_ID, useGameLobby } from '@/context/GameLobbyContext';
+import { useCustomAlert } from '@/hooks/use-custom-alert';
 import { useRealtimeGame } from '@/hooks/use-realtime-game';
 import { db } from '@/services/firebase';
 import { soundManager } from '@/utils/sounds';
@@ -37,6 +39,7 @@ export function MultiplayerQuoridorGame({ gameId }: MultiplayerQuoridorGameProps
   const { user } = useAuth();
   const { gameState } = useRealtimeGame(gameId);
   const { createGame, leaveGame } = useGameLobby();
+  const { alertState, showAlert, hideAlert } = useCustomAlert();
   const router = useRouter();
   const [mode, setMode] = useState<'move' | 'wall' | 'drag'>('move');
   const [wallOrientation, setWallOrientation] = useState<Orientation>('horizontal');
@@ -120,7 +123,11 @@ export function MultiplayerQuoridorGame({ gameId }: MultiplayerQuoridorGameProps
           updatedAt: serverTimestamp(),
         });
       } catch {
-        Alert.alert('Error', 'Failed to update game1');
+        showAlert({
+          title: 'Error',
+          message: 'Failed to update game',
+          buttons: [{ text: 'OK', style: 'default' }],
+        });
       }
     },
     [gameData, gameId],
@@ -136,7 +143,11 @@ export function MultiplayerQuoridorGame({ gameId }: MultiplayerQuoridorGameProps
           updatedAt: serverTimestamp(),
         });
       } catch {
-        Alert.alert('Error', 'Failed to update game2');
+        showAlert({
+          title: 'Error',
+          message: 'Failed to update game',
+          buttons: [{ text: 'OK', style: 'default' }],
+        });
       }
     },
     [gameId],
@@ -299,7 +310,7 @@ export function MultiplayerQuoridorGame({ gameId }: MultiplayerQuoridorGameProps
 
     try {
       const userRef = doc(db, 'users', playerId);
-      const points = isWinner ? 100 : 10;
+      const points = isWinner ? 50 : 5;
 
       await updateDoc(userRef, {
         'stats.points': increment(points),
@@ -313,7 +324,7 @@ export function MultiplayerQuoridorGame({ gameId }: MultiplayerQuoridorGameProps
       if (userDoc.exists()) {
         const userData = userDoc.data();
         const currentPoints = userData.stats?.points || 0;
-        const newLevel = ((currentPoints / 500) + 1).toFixed(2);
+        const newLevel = Math.floor(currentPoints / 1000) + 1;
         await updateDoc(userRef, { 'stats.level': newLevel });
       }
     } catch (error) {
@@ -426,10 +437,10 @@ export function MultiplayerQuoridorGame({ gameId }: MultiplayerQuoridorGameProps
       return;
     }
 
-    Alert.alert(
-      'Surrender Game',
-      'Are you sure you want to surrender? Your opponent will win.',
-      [
+    showAlert({
+      title: 'Surrender Game',
+      message: 'Are you sure you want to surrender? Your opponent will win.',
+      buttons: [
         { text: 'Cancel', style: 'cancel' },
         {
           text: 'Surrender',
@@ -445,8 +456,8 @@ export function MultiplayerQuoridorGame({ gameId }: MultiplayerQuoridorGameProps
             updatePlayerStats(user.uid, false);
           },
         },
-      ]
-    );
+      ],
+    });
   };
 
   const handlePlayAgain = async () => {
@@ -510,7 +521,11 @@ export function MultiplayerQuoridorGame({ gameId }: MultiplayerQuoridorGameProps
           newGameId: newGame.id,
         });
       } catch (error) {
-        Alert.alert('Error', 'Failed to create new game');
+        showAlert({
+          title: 'Error',
+          message: 'Failed to create new game',
+          buttons: [{ text: 'OK', style: 'default' }],
+        });
         console.error('Error creating new game:', error);
       }
     }
@@ -595,7 +610,7 @@ export function MultiplayerQuoridorGame({ gameId }: MultiplayerQuoridorGameProps
           </View>
           {winner && (
             <ThemedText style={styles.winMessage}>
-              {winner === myPlayerSide ? '+100 points! 🎉' : '+10 points for playing'}
+              {winner === myPlayerSide ? '+50 points! 🎉' : '+5 points for playing'}
             </ThemedText>
           )}
         </View>
@@ -711,6 +726,14 @@ export function MultiplayerQuoridorGame({ gameId }: MultiplayerQuoridorGameProps
             </ThemedText>
           </View>
         )}
+        
+        <CustomAlert
+          visible={alertState.visible}
+          title={alertState.options?.title || ''}
+          message={alertState.options?.message || ''}
+          buttons={alertState.options?.buttons || []}
+          onDismiss={hideAlert}
+        />
       </ThemedView>
     // </ScrollView>
   );
