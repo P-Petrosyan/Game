@@ -32,6 +32,12 @@ export type GameState = {
   newGameId?: string;
   oldGameId?: string;
   state?: Record<string, unknown>;
+  aiMatch?: {
+    enabled?: boolean;
+    difficulty?: string;
+    aiPlayerId?: string;
+    aiName?: string;
+  };
 };
 
 export type UseRealtimeGameResult = {

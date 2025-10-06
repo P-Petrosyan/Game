@@ -1,4 +1,5 @@
 import {
+  BOARD_SIZE,
   Position,
   Wall,
   PlayerId,
@@ -14,6 +15,21 @@ export interface AIMove {
   type: 'move' | 'wall';
   data: Position | Wall;
   score: number;
+}
+
+function mirrorPosition(position: Position): Position {
+  return {
+    row: BOARD_SIZE - 1 - position.row,
+    col: position.col,
+  };
+}
+
+function mirrorWall(wall: Wall): Wall {
+  return {
+    orientation: wall.orientation,
+    row: (BOARD_SIZE - 2) - wall.row,
+    col: wall.col,
+  };
 }
 
 export class QuoridorAI {
@@ -306,8 +322,6 @@ export class QuoridorAI {
     walls: Wall[],
     wallsRemaining: Record<PlayerId, number>
   ): Promise<AIMove | null> {
-    this.recordSnapshot(positions, walls);
-
     return this.getBestMoveFromTypeScript(positions, walls, wallsRemaining.south);
   }
 
@@ -316,7 +330,7 @@ export class QuoridorAI {
     walls: Wall[],
     wallsRemaining: number
   ): AIMove | null {
-
+    this.recordSnapshot(positions, walls);
     const edges = buildBlockedEdges(walls);
     const aiMoves = getValidPawnMoves(positions.south, positions.north, edges);
     let bestMove: AIMove | null = null;
@@ -404,6 +418,44 @@ export class QuoridorAI {
     }
 
     return bestMove;
+  }
+
+  getBestMoveForSide(
+    side: PlayerId,
+    positions: Record<PlayerId, Position>,
+    walls: Wall[],
+    wallsRemaining: number,
+  ): AIMove | null {
+    // if (side === 'south') {
+    //   const wallsRemainingRecord = { north: 10, south: wallsRemaining };
+      return this.getBestMoveFromTypeScript(positions, walls, wallsRemaining);
+    // }
+
+    // const mirroredPositions: Record<PlayerId, Position> = {
+    //   north: mirrorPosition(positions.south),
+    //   south: mirrorPosition(positions.north),
+    // };
+    //
+    // const mirroredWalls = walls.map(mirrorWall);
+    // const mirroredMove = this.getBestMoveFromTypeScript(mirroredPositions, mirroredWalls, wallsRemaining);
+    //
+    // if (!mirroredMove) {
+    //   return null;
+    // }
+    //
+    // if (mirroredMove.type === 'move') {
+    //   const mirroredData = mirroredMove.data as Position;
+    //   return {
+    //     ...mirroredMove,
+    //     data: mirrorPosition(mirroredData),
+    //   };
+    // }
+    //
+    // const mirroredWallPlacement = mirroredMove.data as Wall;
+    // return {
+    //   ...mirroredMove,
+    //   data: mirrorWall(mirroredWallPlacement),
+    // };
   }
 
   getThinkingTime(): number {

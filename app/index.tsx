@@ -87,7 +87,7 @@ export default function HomeScreen() {
         <View style={styles.content}>
           <View style={styles.header}>
             <ThemedText type="title" style={styles.title}>
-              Path Blocker
+              Quoridor Online
             </ThemedText>
             {/*<ThemedText style={styles.subtitle}>*/}
             {/*  Choose how you want to play and jump into the action.*/}

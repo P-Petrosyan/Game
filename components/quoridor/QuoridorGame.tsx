@@ -1,5 +1,5 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
-import { Pressable, ScrollView, StyleSheet, View, ImageBackground } from 'react-native';
+import { Pressable, Platform, StyleSheet, View, ImageBackground } from 'react-native';
 
 import { ThemedText } from '@/components/themed-text';
 import { ThemedView } from '@/components/themed-view';
@@ -49,8 +49,12 @@ const PLAYER_LABELS: Record<PlayerId, string> = {
 };
 
 
-if (__DEV__) console. log('Running in dev mode')
-const adUnitId = "ca-app-pub-3940256099942544/2435281174";
+const adUnitId = __DEV__
+  ? TestIds.BANNER
+  : Platform.select({
+    ios: 'ca-app-pub-4468002211413891/5755554513',     // ✅ iOS banner ID
+    android: 'ca-app-pub-4468002211413891/9076987898', // ✅ Android banner ID
+  })!;
 
 export function QuoridorGame() {
   const [positions, setPositions] = useState<Record<PlayerId, Position>>(() => ({

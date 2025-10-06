@@ -1,6 +1,6 @@
 import { useRouter } from 'expo-router';
-import React, { useState } from 'react';
-import { ActivityIndicator, Alert, FlatList, Pressable, StyleSheet, View, ImageBackground } from 'react-native';
+import React, { useEffect, useState } from 'react';
+import {ActivityIndicator, Alert, FlatList, Pressable, StyleSheet, View, ImageBackground, Platform} from 'react-native';
 
 import { ThemedText } from '@/components/themed-text';
 import { ThemedView } from '@/components/themed-view';
@@ -19,7 +19,12 @@ type GameListItemProps = {
   disabled?: boolean;
 };
 
-const adUnitId = __DEV__ ? TestIds.BANNER : "ca-app-pub-3940256099942544/2435281174";
+const adUnitId = __DEV__
+  ? TestIds.BANNER
+  : Platform.select({
+    ios: 'ca-app-pub-4468002211413891/5755554513',     // ✅ iOS banner ID
+    android: 'ca-app-pub-4468002211413891/9076987898', // ✅ Android banner ID
+  })!;
 
 function GameListItem({ name, players, maxPlayers, status, isPrivate, onPress, disabled }: GameListItemProps) {
   return (
@@ -46,9 +51,15 @@ function GameListItem({ name, players, maxPlayers, status, isPrivate, onPress, d
 }
 
 export default function OnlineGamesScreen() {
-  const { games, loading, joinGame } = useGameLobby();
+  const { games, loading, joinGame, ensureAIGameAvailability } = useGameLobby();
   const router = useRouter();
   const [joiningGameId, setJoiningGameId] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (!loading) {
+      void ensureAIGameAvailability();
+    }
+  }, [ensureAIGameAvailability, games, loading]);
 
   const handleJoinGame = async (gameId: string, isPrivate?: boolean) => {
     if (isPrivate) {
