@@ -113,8 +113,6 @@ export function MultiplayerQuoridorGame({ gameId }: MultiplayerQuoridorGameProps
 
   const updateGameState = useCallback(
     async (updates: any) => {
-      console.log('updates')
-      console.log(updates)
       if (!gameId) return;
       try {
         const gameRef = doc(db, 'games', gameId);
@@ -164,7 +162,6 @@ export function MultiplayerQuoridorGame({ gameId }: MultiplayerQuoridorGameProps
 
     const hasWon = isWinningPosition(myPlayerSide, target);
     const nextPlayer = hasWon ? myPlayerSide : getOpponent(myPlayerSide);
-    console.log('esa3')
     await updateGameState({
       positions: nextPositions,
       currentPlayer: nextPlayer,
@@ -193,7 +190,6 @@ export function MultiplayerQuoridorGame({ gameId }: MultiplayerQuoridorGameProps
       ...wallsRemaining,
       [myPlayerSide]: wallsRemaining[myPlayerSide] - 1,
     };
-    console.log('esa4')
     await updateGameState({
       walls: nextWalls,
       wallsRemaining: nextWallsRemaining,
@@ -211,7 +207,6 @@ export function MultiplayerQuoridorGame({ gameId }: MultiplayerQuoridorGameProps
     const currentPlayers = Object.keys(gameState.players || {});
     if (currentPlayers.length === 1 && currentPlayers.includes(user.uid)) {
       if (!winner && gameState.status === 'playing') {
-        console.log('eschi')
         updateGameState({
           winner: myPlayerSide,
           gameEndReason: 'opponent_left',
@@ -242,7 +237,6 @@ export function MultiplayerQuoridorGame({ gameId }: MultiplayerQuoridorGameProps
       try {
         // @ts-ignore
         await deleteDoc(doc(db, 'games', gameState?.oldGameId));
-        console.log('Deleted game:', gameState?.oldGameId);
       } catch (error) {
         console.error('Failed to delete game:', error);
       }
@@ -272,7 +266,6 @@ export function MultiplayerQuoridorGame({ gameId }: MultiplayerQuoridorGameProps
       setTurnTimer(prev => {
         if (prev <= 1) {
           // Time's up - current player loses
-          console.log('ese chi')
           updateGameState({
             winner: getOpponent(currentPlayer),
             gameEndReason: 'timeout',
@@ -358,11 +351,7 @@ export function MultiplayerQuoridorGame({ gameId }: MultiplayerQuoridorGameProps
     const thinkingDelay = aiInstance.getThinkingTime();
     const timer = setTimeout(async () => {
       const aiWallsLeft = wallsRemaining[aiPlayerSide] ?? 0;
-      console.log('aiPlayerSide, positions, walls, aiWallsLeft')
-      console.log(aiPlayerSide, positions, walls, aiWallsLeft)
       const move = aiInstance.getBestMoveForSide(aiPlayerSide, positions, walls, aiWallsLeft);
-      console.log('move')
-      console.log(move)
       aiMoveInProgressRef.current = false;
 
       if (!move) {
@@ -374,7 +363,6 @@ export function MultiplayerQuoridorGame({ gameId }: MultiplayerQuoridorGameProps
         const nextPositions = { ...positions, [aiPlayerSide]: target };
         const hasWon = isWinningPosition(aiPlayerSide, target);
         const nextPlayer = hasWon ? aiPlayerSide : getOpponent(aiPlayerSide);
-        console.log('esa?')
         await updateGameState({
           positions: nextPositions,
           currentPlayer: nextPlayer,
@@ -387,15 +375,11 @@ export function MultiplayerQuoridorGame({ gameId }: MultiplayerQuoridorGameProps
         }
       } else {
         const wallPlacement = move.data as Wall;
-        console.log('walls')
-        console.log(walls)
-        console.log(wallPlacement)
         const nextWalls = [...walls, wallPlacement];
         const nextWallsRemaining = {
           ...wallsRemaining,
           [aiPlayerSide]: Math.max(0, (wallsRemaining[aiPlayerSide] ?? 0) - 1),
         };
-        console.log('esa2 /')
         await updateGameState({
           walls: nextWalls,
           wallsRemaining: nextWallsRemaining,

@@ -320,7 +320,6 @@ export function GameLobbyProvider({ children }: { children: ReactNode }) {
 
         if (isFull && isInactive && data.status === 'playing') {
           await deleteDoc(doc.ref);
-          console.log(`Deleted inactive game: ${doc.id}`);
         }
       }
     } catch (error) {

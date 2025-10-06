@@ -62,7 +62,6 @@ export default function GameSessionScreen() {
       try {
         // @ts-ignore
         await deleteDoc(doc(db, 'games', gameState?.oldGameId));
-        console.log('Deleted game:', gameState?.oldGameId);
       } catch (error) {
         console.error('Failed to delete game:', error);
       }
