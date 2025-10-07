@@ -1,8 +1,8 @@
-import { useState, useEffect } from 'react';
+import React, { useState, useEffect } from 'react';
 import { ScrollView, Pressable, StyleSheet, View, TextInput, Alert, ImageBackground } from 'react-native';
 import { useRouter } from 'expo-router';
-import { updatePassword, reauthenticateWithCredential, EmailAuthProvider, updateProfile } from 'firebase/auth';
-import { doc, updateDoc, query, collection, where, getDocs } from 'firebase/firestore';
+import { updatePassword, reauthenticateWithCredential, EmailAuthProvider, updateProfile, deleteUser } from 'firebase/auth';
+import { doc, updateDoc, query, collection, where, getDocs, deleteDoc } from 'firebase/firestore';
 
 import { ThemedText } from '@/components/themed-text';
 import { ThemedView } from '@/components/themed-view';
@@ -10,6 +10,8 @@ import { Colors } from '@/constants/theme';
 import { useAuth } from '@/context/AuthContext';
 import { db } from '@/services/firebase';
 import { useUserStats } from '@/hooks/use-user-stats';
+import { useCustomAlert } from '@/hooks/use-custom-alert';
+import {CustomAlert} from "@/components/ui/CustomAlert";
 
 const formatNumber = (num: number): string => {
   if (num >= 1000000) {
@@ -31,6 +33,7 @@ export default function ProfileScreen() {
   const [showOldPassword, setShowOldPassword] = useState(false);
   const [showCurrentPassword, setShowCurrentPassword] = useState(false);
   const [updating, setUpdating] = useState(false);
+  const { alertState, showAlert, hideAlert } = useCustomAlert();
 
   useEffect(() => {
     if (!user) {
@@ -49,7 +52,11 @@ export default function ProfileScreen() {
       const usernameSnapshot = await getDocs(usernameQuery);
       
       if (!usernameSnapshot.empty) {
-        Alert.alert('Error', 'Username already exists');
+        showAlert({
+          title: 'Error',
+          message: 'Username already exists',
+          buttons: [{ text: 'OK', onPress: hideAlert }],
+        });
         return;
       }
 
@@ -58,9 +65,17 @@ export default function ProfileScreen() {
         displayName: username.trim(),
         username: username.trim()
       });
-      Alert.alert('Success', 'Username updated');
+      showAlert({
+        title: 'Success',
+        message: 'Username updated',
+        buttons: [{ text: 'OK', onPress: hideAlert }],
+      });
     } catch (error) {
-      Alert.alert('Error', 'Failed to update username');
+      showAlert({
+        title: 'Error',
+        message: 'Failed to update username',
+        buttons: [{ text: 'OK', onPress: hideAlert }],
+      });
     } finally {
       setUpdating(false);
     }
@@ -68,7 +83,11 @@ export default function ProfileScreen() {
 
   const handleChangePassword = async () => {
     if (!user || !currentPassword.trim() || !newPassword.trim()) {
-      Alert.alert('Error', 'Please fill in both current and new password');
+      showAlert({
+        title: 'Error',
+        message: 'Please fill in both current and new password',
+        buttons: [{ text: 'OK', onPress: hideAlert }],
+      });
       return;
     }
     
@@ -79,17 +98,85 @@ export default function ProfileScreen() {
       await updatePassword(user, newPassword);
       setCurrentPassword('');
       setNewPassword('');
-      Alert.alert('Success', 'Password updated');
+      showAlert({
+        title: 'Success',
+        message: 'Password updated',
+        buttons: [{ text: 'OK', onPress: hideAlert }],
+      });
     } catch (error) {
-      Alert.alert('Error', 'Failed to update password. Check your current password.');
+      showAlert({
+        title: 'Error',
+        message: 'Failed to update password. Check your current password.',
+        buttons: [{ text: 'OK', onPress: hideAlert }],
+      });
     } finally {
       setUpdating(false);
     }
   };
 
   const handleSignOut = async () => {
-    await logout();
-    router.replace('/');
+    showAlert({
+      title: 'Delete Account',
+      message: 'Are you sure you want to delete your account? This action cannot be undone.',
+      buttons: [
+        {
+          text: 'Cancel',
+          style: 'cancel',
+          onPress: hideAlert,
+        },
+        {
+          text: 'Sign Out',
+          style: 'destructive',
+          onPress: async () => {
+            hideAlert();
+            try {
+              await logout();
+              router.replace('/');
+            } catch (error) {
+              showAlert({
+                title: 'Error',
+                message: 'Failed to sign out',
+                buttons: [{ text: 'OK', onPress: hideAlert }],
+              });
+            }
+          },
+        },
+      ],
+    });
+  };
+
+  const handleDeleteAccount = async () => {
+    if (!user) return;
+
+    showAlert({
+      title: 'Delete Account',
+      message: 'Are you sure you want to delete your account? This action cannot be undone.',
+      buttons: [
+        {
+          text: 'Cancel',
+          style: 'cancel',
+          onPress: hideAlert,
+        },
+        {
+          text: 'Delete',
+          style: 'destructive',
+          onPress: async () => {
+            hideAlert();
+            try {
+              await deleteDoc(doc(db, 'users', user.uid));
+              await deleteUser(user);
+              router.replace('/auth/login');
+            } catch (error) {
+              showAlert({
+                title: 'Error',
+                message: 'Failed to delete account',
+                buttons: [{ text: 'OK', onPress: hideAlert }],
+              });
+            }
+          },
+        },
+      ],
+    });
   };
 
   if (!user) {
@@ -172,9 +259,23 @@ export default function ProfileScreen() {
           </View>
         )}
 
-        <Pressable style={[styles.button, styles.signOutButton]} onPress={handleSignOut}>
-          <ThemedText style={styles.buttonText}>Sign Out</ThemedText>
-        </Pressable>
+        <View style={styles.actionButtons}>
+          <Pressable style={[styles.button, styles.signOutButton]} onPress={handleSignOut}>
+            <ThemedText style={styles.buttonText}>Sign Out</ThemedText>
+          </Pressable>
+          <Pressable style={styles.deleteButton} onPress={handleDeleteAccount}>
+            <ThemedText style={styles.deleteButtonText}>Delete Account</ThemedText>
+          </Pressable>
+        </View>
+        <CustomAlert
+          visible={alertState.visible}
+          title={alertState.options?.title || ''}
+          message={alertState.options?.message || ''}
+          buttons={alertState.options?.buttons || []}
+          onDismiss={hideAlert}
+          showInput={alertState.options?.title === 'Private Game'}
+          inputPlaceholder="Enter numbers only"
+        />
       </ThemedView>
     </ScrollView>
     </ImageBackground>
@@ -237,7 +338,7 @@ const styles = StyleSheet.create({
   },
   signOutButton: {
     backgroundColor: Colors.danger,
-    marginTop: 10,
+    // flex: 0.6,
   },
   statsGrid: {
     flexDirection: 'row',
@@ -281,5 +382,22 @@ const styles = StyleSheet.create({
   showButtonText: {
     fontSize: 12,
     color: Colors.textMuted,
+  },
+  actionButtons: {
+    // flexDirection: 'row',
+    gap: 10,
+    // marginTop: 10,
+  },
+  deleteButton: {
+    backgroundColor: Colors.danger,
+    paddingVertical: 8,
+    paddingHorizontal: 12,
+    borderRadius: 6,
+    alignItems: 'center',
+  },
+  deleteButtonText: {
+    color: '#fff',
+    fontWeight: '600',
+    fontSize: 12,
   },
 });
