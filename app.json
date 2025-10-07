@@ -9,6 +9,10 @@
     "extra": {
       "eas": {
         "projectId": "project-344529006287"
+      },
+      "admob": {
+        "androidAppId": "ca-app-pub-4468002211413891~1278388928",
+        "iosAppId": "ca-app-pub-4468002211413891~5060585795"
       }
     },
     "userInterfaceStyle": "automatic",
@@ -42,7 +46,7 @@
       [
         "expo-splash-screen",
         {
-          "image": "./assets/images/gameReady.png",
+          "image": "./assets/images/icon1.png",
           "imageWidth": "100%",
           "imageHeight": "100%",
           "resizeMode": "cover",
