@@ -4,7 +4,7 @@ export default {
     expo: {
         name: "Path Blocker Online",
         slug: "path-blocker",
-        version: "1.0.0", // App Store / Play Store visible version
+        version: "1.0.1", // App Store / Play Store visible version
         orientation: "portrait",
         icon: "./assets/images/icon1.png",
         scheme: "pathblocker",
@@ -25,7 +25,7 @@ export default {
             supportsTablet: true,
             bundleIdentifier: "com.anonymous.pathblocker",
             deploymentTarget: "18.0",
-            buildNumber: "1.0.0",
+            buildNumber: "2",
             googleServicesFile: "./GoogleService-Info.plist",
             infoPlist: {
                 NSUserTrackingUsageDescription:
