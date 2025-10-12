@@ -1,6 +1,6 @@
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
-import {ActivityIndicator, Alert, Pressable, StyleSheet, View, ImageBackground, Platform} from 'react-native';
+import { ActivityIndicator, Alert, Pressable, StyleSheet, View, ImageBackground, Platform } from 'react-native';
 
 import { ThemedText } from '@/components/themed-text';
 import { ThemedView } from '@/components/themed-view';
@@ -10,8 +10,9 @@ import { useAuth } from '@/context/AuthContext';
 import { useGameLobby } from '@/context/GameLobbyContext';
 import { useRealtimeGame } from '@/hooks/use-realtime-game';
 import { db } from '@/services/firebase';
-import {serverTimestamp, updateDoc, doc, deleteDoc} from 'firebase/firestore';
-import {BannerAd, BannerAdSize, TestIds} from "react-native-google-mobile-ads";
+import { serverTimestamp, updateDoc, doc, deleteDoc } from 'firebase/firestore';
+import { BannerAd, BannerAdSize, TestIds } from 'react-native-google-mobile-ads';
+import OnlineGamesScreen from "@/app/online";
 type RouteParams = {
   id?: string;
 };
@@ -199,12 +200,13 @@ export default function GameSessionScreen() {
             </Pressable>
           </View>
         ) : !gameState ? (
-          <View style={styles.errorState}>
-            <ThemedText type="subtitle">Opponent left the match.</ThemedText>
-            <Pressable onPress={() => router.replace('/')} style={({ pressed }) => [styles.backButton, pressed && styles.backButtonPressed]}>
-              <ThemedText type="defaultSemiBold">Back to lobby</ThemedText>
-            </Pressable>
-          </View>
+          <OnlineGamesScreen/>
+          // <View style={styles.errorState}>
+          //   <ThemedText type="subtitle">Opponent left the match.</ThemedText>
+          //   <Pressable onPress={() => router.replace('/')} style={({ pressed }) => [styles.backButton, pressed && styles.backButtonPressed]}>
+          //     <ThemedText type="defaultSemiBold">Back to lobby</ThemedText>
+          //   </Pressable>
+          // </View>
         ) : isGameStarted ? (
           <View style={styles.gameContainer}>
             <View style={styles.bannerContainer}>

@@ -137,22 +137,46 @@ export class QuoridorAI {
   private getWallValue(wall: Wall, positions: Record<PlayerId, Position>, walls: Wall[], wallsRemaining: number): number {
     let value = 0;
 
-    // Core blocking power
+    // Check if wall blocks AI's own path - heavily penalize
+    const currentEdges = buildBlockedEdges(walls);
+    const currentAiDist = this.getShortestPath(positions.south, 0, currentEdges, positions.north);
+    const testWalls = [...walls, wall];
+    const testEdges = buildBlockedEdges(testWalls);
+    const newAiDist = this.getShortestPath(positions.south, 0, testEdges, positions.north);
+    
+    // Heavily penalize walls that increase AI's distance
+    if (newAiDist > currentAiDist) {
+      value -= (newAiDist - currentAiDist) * 50;
+    }
+
+    // Core blocking power for opponent
     const blockingValue = this.isBlockingWall(wall, positions, walls);
-    value += blockingValue * 26; // HARD++ stronger emphasis
+    value += blockingValue * 20;
 
     // Distances to actors
     const distToPlayer = Math.abs(wall.row - positions.north.row) + Math.abs(wall.col - positions.north.col);
     const distToAI = Math.abs(wall.row - positions.south.row) + Math.abs(wall.col - positions.south.col);
 
-    if (distToPlayer <= 3) value += (4 - distToPlayer) * 6;
-    if (distToAI < 2) value -= 12;
+    if (distToPlayer <= 2) value += (3 - distToPlayer) * 8;
+    if (distToAI < 2) value -= 20; // Stronger penalty for walls too close to AI
 
-    // Orientation heuristics
+    // Strategic positioning - walls should be between players or blocking opponent's path
     if (wall.orientation === 'horizontal') {
-      if (wall.row > positions.north.row && wall.row < positions.south.row) value += 10;
+      // Horizontal walls should block opponent's forward progress
+      if (wall.row >= positions.north.row && wall.row < positions.south.row - 1) {
+        value += 15;
+      }
+      // Avoid walls behind AI
+      if (wall.row >= positions.south.row) {
+        value -= 25;
+      }
     } else {
-      if (Math.abs(wall.col - positions.north.col) <= 1) value += 8;
+      // Vertical walls should channel or block opponent
+      if (Math.abs(wall.col - positions.north.col) <= 1) value += 12;
+      // Avoid walls that might trap AI
+      if (Math.abs(wall.col - positions.south.col) <= 1 && wall.row >= positions.south.row - 2) {
+        value -= 15;
+      }
     }
 
     // HARD++ predictive/phase logic
@@ -175,27 +199,33 @@ export class QuoridorAI {
         if (blocksPath) value += 28; // HIGH for path interception
       }
 
-      // Early prudence
-      if (gamePhase < 0.25) {
-        if (blockingValue < 3) value -= 42;
-        if (distToPlayer > 2) value -= 30;
+      // Early game - only place walls that significantly block opponent
+      if (gamePhase < 0.3) {
+        if (blockingValue < 2) value -= 60;
+        if (distToPlayer > 3) value -= 40;
+        // Don't place walls near AI in early game
+        if (distToAI <= 2) value -= 50;
       }
 
-      // Mid-game selectivity + future options
-      if (gamePhase >= 0.25 && gamePhase < 0.75) {
-        if (blockingValue < 2 && playerDist - aiDist < 2) value -= 26;
-        if (blockingValue >= 3) value += 16;
-
+      // Mid-game - focus on strategic blocking
+      if (gamePhase >= 0.3 && gamePhase < 0.7) {
+        if (blockingValue < 1 && playerDist - aiDist < 3) value -= 35;
+        if (blockingValue >= 2) value += 25;
+        
+        // Prefer walls that create multiple blocking opportunities
         const testWalls = [...walls, wall];
         const futureWallSpots = computeAvailableWalls('horizontal', testWalls, positions)
           .concat(computeAvailableWalls('vertical', testWalls, positions))
           .filter(w => Math.abs(w.row - positions.north.row) <= 2);
-        if (futureWallSpots.length > 3) value += 10;
+        if (futureWallSpots.length > 4) value += 15;
       }
 
-      // Wall conservation
+      // Wall conservation - don't waste walls early
       const wallRatio = wallsRemaining / 10;
-      if (gamePhase < 0.5 && wallRatio > 0.7 && blockingValue < 3) value -= 32;
+      if (gamePhase < 0.4 && wallRatio > 0.6 && blockingValue < 2) value -= 45;
+      
+      // Late game - be more aggressive with remaining walls
+      if (gamePhase > 0.7 && wallRatio > 0.3 && blockingValue >= 1) value += 20;
     }
 
     return value;
@@ -242,35 +272,42 @@ export class QuoridorAI {
 
     if (this.difficulty === 'hard') {
       const wallRatio = wallsRemaining / 10;
+      const distanceDiff = playerDist - aiDist;
 
-      if (gamePhase < 0.25) {
-        if (positions.north.row >= 3 && aiDist >= playerDist + 3) return Math.random() < 0.45;
-        return Math.random() < 0.08;
+      // Early game - very conservative, only if opponent is close and we're behind
+      if (gamePhase < 0.3) {
+        if (positions.north.row >= 4 && distanceDiff <= -2) return Math.random() < 0.6;
+        if (positions.north.row >= 3 && distanceDiff <= -3) return Math.random() < 0.4;
+        return Math.random() < 0.05;
       }
 
-      if (gamePhase < 0.5) {
+      // Mid game - strategic wall placement
+      if (gamePhase < 0.6) {
         const predictedPath = this.predictPlayerPath(positions, walls);
-        if (predictedPath.length > 0 && predictedPath.length <= 6) return Math.random() < 0.7;
-        if (aiDist >= playerDist + 2) return Math.random() < 0.75;
-        return Math.random() < 0.22;
+        if (predictedPath.length > 0 && predictedPath.length <= 5) return Math.random() < 0.8;
+        if (distanceDiff <= -1) return Math.random() < 0.7;
+        if (distanceDiff <= 0) return Math.random() < 0.5;
+        return Math.random() < 0.2;
       }
 
-      if (gamePhase < 0.75) {
-        if (playerDist <= 4 && aiDist > playerDist) return Math.random() < 0.85;
-        if (aiDist >= playerDist + 1) return Math.random() < 0.65;
-        if (wallRatio > 0.6) return Math.random() < 0.35;
-        return Math.random() < 0.45;
+      // Late mid game - more aggressive
+      if (gamePhase < 0.8) {
+        if (playerDist <= 4 && distanceDiff <= 0) return Math.random() < 0.9;
+        if (distanceDiff <= 0) return Math.random() < 0.7;
+        if (wallRatio > 0.4) return Math.random() < 0.4;
+        return Math.random() < 0.5;
       }
 
-      // End game: spend walls
-      if (playerDist <= 3) return Math.random() < 0.92;
-      if (aiDist >= playerDist) return Math.random() < 0.75;
-      return Math.random() < 0.55;
+      // End game - use remaining walls strategically
+      if (playerDist <= 3) return Math.random() < 0.95;
+      if (distanceDiff <= 1) return Math.random() < 0.8;
+      return Math.random() < 0.6;
     }
 
-    // medium
-    if (aiDist >= playerDist) return Math.random() < 0.8;
-    if (aiDist < playerDist - 2) return Math.random() < 0.4;
+    // medium difficulty
+    const distanceDiff = playerDist - aiDist;
+    if (distanceDiff <= -1) return Math.random() < 0.8;
+    if (distanceDiff <= -3) return Math.random() < 0.4;
     return Math.random() < 0.6;
   }
 
@@ -354,15 +391,25 @@ export class QuoridorAI {
         const replyPenalty = Math.max(0, oppReply - score);
         score = score - 0.85 * replyPenalty;
 
-        // Progress sanity: penalize non-progress or backward/flat moves
+        // Strong progress incentive - heavily penalize backward or non-progress moves
         const newEdges = buildBlockedEdges(walls);
         const newAiDist = this.getShortestPath(move, 0, newEdges, testPos.north);
         const currentAiDist = this.getShortestPath(positions.south, 0, edges, positions.north);
-        if (newAiDist >= currentAiDist && move.row >= positions.south.row) score -= 34;
-
-        if (Math.abs(move.col - 4) <= 2) score += 6; // center lanes
+        
+        // Penalize moves that don't improve distance to goal
+        if (newAiDist > currentAiDist) score -= 50;
+        if (newAiDist === currentAiDist && move.row >= positions.south.row) score -= 30;
+        
+        // Reward forward progress
+        if (move.row < positions.south.row) score += 15;
+        
+        // Center preference but not at expense of progress
+        if (Math.abs(move.col - 4) <= 2 && move.row < positions.south.row) score += 8;
+        
+        // Avoid self-trapping moves
         const futureAi = getValidPawnMoves(move, testPos.north, newEdges);
-        if (futureAi.length <= 1) score -= 24; // avoid self-traps
+        if (futureAi.length <= 1) score -= 40;
+        if (futureAi.length === 2) score -= 15;
       }
 
       score = this.addRandomness(score);
@@ -406,8 +453,8 @@ export class QuoridorAI {
 
         score = this.addRandomness(score);
 
-        if (this.difficulty === 'hard' && bestMove && score <= bestMove.score - 2) {
-          // HARD++: only choose wall if it's clearly better than our best pawn move
+        if (this.difficulty === 'hard' && bestMove && bestMove.type === 'move' && score <= bestMove.score + 10) {
+          // Only choose wall if it's significantly better than moving forward
           continue;
         }
 

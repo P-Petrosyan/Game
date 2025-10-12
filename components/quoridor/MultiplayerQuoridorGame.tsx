@@ -731,7 +731,8 @@ const styles = StyleSheet.create({
   },
   container: {
     gap: 16,
-    borderRadius: 20,
+    borderBottomLeftRadius: 20,
+    borderBottomRightRadius: 20,
     padding: 20,
     backgroundColor: Colors.surface,
     borderWidth: 1,

@@ -1,7 +1,6 @@
 import { Link, useRouter } from 'expo-router';
-import { useState } from 'react';
+import React, { useState } from 'react';
 import {
-  Alert,
   KeyboardAvoidingView,
   Platform,
   Pressable,
@@ -14,13 +13,16 @@ import { ThemedText } from '@/components/themed-text';
 import { ThemedView } from '@/components/themed-view';
 import { Colors } from '@/constants/theme';
 import { useAuth } from '@/context/AuthContext';
+import { useCustomAlert } from '@/hooks/use-custom-alert';
+import { CustomAlert } from "@/components/ui/CustomAlert";
 
 export default function LoginScreen() {
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
   const [submitting, setSubmitting] = useState(false);
   const router = useRouter();
-  const { login } = useAuth();
+  const { login, register } = useAuth();
+  const { alertState, showAlert, hideAlert } = useCustomAlert();
   const accentColor = Colors.accent;
   const textColor = Colors.text;
   const buttonTextColor = Colors.buttonText;
@@ -39,8 +41,33 @@ export default function LoginScreen() {
       await login({ username: username.trim(), password });
       router.replace('/');
     } catch (authError) {
-      const message = authError instanceof Error ? authError.message : 'Unable to sign in. Double-check your details.';
-      Alert.alert('Sign in failed', message);
+      showAlert({
+        title: 'Sign in failed',
+        message: 'User not found. Would you like to create a new account with these credentials?',
+        buttons: [
+          {
+            text: 'No',
+            style: 'cancel',
+            onPress: hideAlert,
+          },
+          {
+            text: 'Yes',
+            onPress: async () => {
+              hideAlert();
+              try {
+                await register({ username: username.trim(), password });
+                router.replace('/');
+              } catch (registerError) {
+                showAlert({
+                  title: 'Registration failed',
+                  message: registerError instanceof Error ? registerError.message : 'Failed to create account',
+                  buttons: [{ text: 'OK', onPress: hideAlert }],
+                });
+              }
+            },
+          },
+        ],
+      });
     } finally {
       setSubmitting(false);
     }
@@ -114,6 +141,13 @@ export default function LoginScreen() {
             Create one now
           </Link>
         </View>
+        <CustomAlert
+          visible={alertState.visible}
+          title={alertState.options?.title || ''}
+          message={alertState.options?.message || ''}
+          buttons={alertState.options?.buttons || []}
+          onDismiss={hideAlert}
+        />
       </KeyboardAvoidingView>
     </ThemedView>
   );

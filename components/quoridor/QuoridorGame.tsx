@@ -570,7 +570,8 @@ const styles = StyleSheet.create({
   // },
   container: {
     gap: 5,
-    borderRadius: 20,
+    borderBottomLeftRadius: 20,
+    borderBottomRightRadius: 20,
     // marginTop: 10,
     padding: 10,
     backgroundColor: Colors.surface,

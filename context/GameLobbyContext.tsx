@@ -46,10 +46,11 @@ type FirestoreLobbyGame = {
   maxPlayers: number;
   playerCount?: number;
   playerIds?: string[];
-  status?: 'waiting' | 'playing' | 'completed';
+  status?: 'waiting' | 'playing' | 'completed' | 'active';
   hostId?: string;
   hostName?: string | null;
   isPrivate?: boolean;
+  updatedAt?: Timestamp | null;
   players?: Record<
     string,
     {
@@ -310,7 +311,7 @@ export function GameLobbyProvider({ children }: { children: ReactNode }) {
       const gamesCollection = collection(db, 'games') as CollectionReference<FirestoreLobbyGame>;
       const snapshot = await getDocs(gamesCollection);
       const now = Date.now();
-      const oneMinuteAgo = now - 60000; // 1 minute in milliseconds
+      const oneMinuteAgo = now - 120000; // 2 minute in milliseconds
 
       for (const doc of snapshot.docs) {
         const data = doc.data();
@@ -318,7 +319,7 @@ export function GameLobbyProvider({ children }: { children: ReactNode }) {
         const isFull = (data.playerIds?.length || 0) >= (data.maxPlayers || 2);
         const isInactive = updatedAt < oneMinuteAgo;
 
-        if (isFull && isInactive && data.status === 'playing') {
+        if (isFull && isInactive && (data.status === 'playing' || data.status === 'active')) {
           await deleteDoc(doc.ref);
         }
       }
