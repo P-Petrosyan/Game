@@ -1,0 +1,12 @@
+version: 1.0
+
+build:
+  preBuildScripts:
+    - name: "Install CocoaPods"
+      script: |
+        echo "🚀 Installing CocoaPods..."
+        cd ios
+        pod install
+  postBuildScripts:
+    - name: "Show Pod install success"
+      script: echo "✅ Pods installed and build completed successfully."
