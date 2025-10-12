@@ -8,5 +8,9 @@ build:
         cd ios
         pod install
   postBuildScripts:
-    - name: "Show Pod install success"
+    - name: "Build Success"
       script: echo "✅ Pods installed and build completed successfully."
+
+archive:
+  upload:
+    destination: testflight

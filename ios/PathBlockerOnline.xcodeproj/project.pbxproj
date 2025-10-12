@@ -7,31 +7,31 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
-		01D29AC906924FF2964AD378 /* GoogleService-Info.plist in Resources */ = {isa = PBXBuildFile; fileRef = FBFD41B8792D41FD9C061B75 /* GoogleService-Info.plist */; };
 		13B07FBF1A68108700A75B9A /* Images.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 13B07FB51A68108700A75B9A /* Images.xcassets */; };
-		34AF6CD61E8EC664099D9E38 /* ExpoModulesProvider.swift in Sources */ = {isa = PBXBuildFile; fileRef = ABCF3985E1918D2A1F26F235 /* ExpoModulesProvider.swift */; };
+		13E17E04F3ABCDFDC033BF9B /* libPods-PathBlockerOnline.a in Frameworks */ = {isa = PBXBuildFile; fileRef = 82B4E8A5A34793DA82A27337 /* libPods-PathBlockerOnline.a */; };
 		3E461D99554A48A4959DE609 /* SplashScreen.storyboard in Resources */ = {isa = PBXBuildFile; fileRef = AA286B85B6C04FC6940260E9 /* SplashScreen.storyboard */; };
-		AF61CAE943CAD5DA11BDF632 /* libPods-PathBlockerOnline.a in Frameworks */ = {isa = PBXBuildFile; fileRef = EE9549494D8EEA49D413ABFE /* libPods-PathBlockerOnline.a */; };
+		6774EA5A6B384321BFD92ED9 /* GoogleService-Info.plist in Resources */ = {isa = PBXBuildFile; fileRef = C0A5F5B1DD704556AFE09FAA /* GoogleService-Info.plist */; };
 		BB2F792D24A3F905000567C9 /* Expo.plist in Resources */ = {isa = PBXBuildFile; fileRef = BB2F792C24A3F905000567C9 /* Expo.plist */; };
-		DB348FEF1CE5401C68036602 /* PrivacyInfo.xcprivacy in Resources */ = {isa = PBXBuildFile; fileRef = B498B8BFB2ECD0A9B3255A10 /* PrivacyInfo.xcprivacy */; };
+		CE6F4BA5226015679C3BC9D5 /* PrivacyInfo.xcprivacy in Resources */ = {isa = PBXBuildFile; fileRef = D559BF280F1B4CB24BCC5C05 /* PrivacyInfo.xcprivacy */; };
 		F11748422D0307B40044C1D9 /* AppDelegate.swift in Sources */ = {isa = PBXBuildFile; fileRef = F11748412D0307B40044C1D9 /* AppDelegate.swift */; };
+		F7C5C2DEB5CB0F01022B0A8B /* ExpoModulesProvider.swift in Sources */ = {isa = PBXBuildFile; fileRef = DD83246F022D4802424CD8DB /* ExpoModulesProvider.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
 		13B07F961A680F5B00A75B9A /* PathBlockerOnline.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = PathBlockerOnline.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		13B07FB51A68108700A75B9A /* Images.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; name = Images.xcassets; path = PathBlockerOnline/Images.xcassets; sourceTree = "<group>"; };
 		13B07FB61A68108700A75B9A /* Info.plist */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text.plist.xml; name = Info.plist; path = PathBlockerOnline/Info.plist; sourceTree = "<group>"; };
-		182978D4034FB356600FA0F4 /* Pods-PathBlockerOnline.debug.xcconfig */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.xcconfig; name = "Pods-PathBlockerOnline.debug.xcconfig"; path = "Target Support Files/Pods-PathBlockerOnline/Pods-PathBlockerOnline.debug.xcconfig"; sourceTree = "<group>"; };
-		94BDE32DB96F6B479866963F /* Pods-PathBlockerOnline.release.xcconfig */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.xcconfig; name = "Pods-PathBlockerOnline.release.xcconfig"; path = "Target Support Files/Pods-PathBlockerOnline/Pods-PathBlockerOnline.release.xcconfig"; sourceTree = "<group>"; };
+		82B4E8A5A34793DA82A27337 /* libPods-PathBlockerOnline.a */ = {isa = PBXFileReference; explicitFileType = archive.ar; includeInIndex = 0; path = "libPods-PathBlockerOnline.a"; sourceTree = BUILT_PRODUCTS_DIR; };
+		9455604FB29E83B07331C4F6 /* Pods-PathBlockerOnline.debug.xcconfig */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.xcconfig; name = "Pods-PathBlockerOnline.debug.xcconfig"; path = "Target Support Files/Pods-PathBlockerOnline/Pods-PathBlockerOnline.debug.xcconfig"; sourceTree = "<group>"; };
 		AA286B85B6C04FC6940260E9 /* SplashScreen.storyboard */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = file.storyboard; name = SplashScreen.storyboard; path = PathBlockerOnline/SplashScreen.storyboard; sourceTree = "<group>"; };
-		ABCF3985E1918D2A1F26F235 /* ExpoModulesProvider.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; name = ExpoModulesProvider.swift; path = "Pods/Target Support Files/Pods-PathBlockerOnline/ExpoModulesProvider.swift"; sourceTree = "<group>"; };
-		B498B8BFB2ECD0A9B3255A10 /* PrivacyInfo.xcprivacy */ = {isa = PBXFileReference; includeInIndex = 1; name = PrivacyInfo.xcprivacy; path = PathBlockerOnline/PrivacyInfo.xcprivacy; sourceTree = "<group>"; };
+		B2BB2545C475703858585C2A /* Pods-PathBlockerOnline.release.xcconfig */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.xcconfig; name = "Pods-PathBlockerOnline.release.xcconfig"; path = "Target Support Files/Pods-PathBlockerOnline/Pods-PathBlockerOnline.release.xcconfig"; sourceTree = "<group>"; };
 		BB2F792C24A3F905000567C9 /* Expo.plist */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text.plist.xml; path = Expo.plist; sourceTree = "<group>"; };
+		C0A5F5B1DD704556AFE09FAA /* GoogleService-Info.plist */ = {isa = PBXFileReference; explicitFileType = undefined; fileEncoding = 4; includeInIndex = 0; lastKnownFileType = text.plist.xml; name = "GoogleService-Info.plist"; path = "PathBlockerOnline/GoogleService-Info.plist"; sourceTree = "<group>"; };
+		D559BF280F1B4CB24BCC5C05 /* PrivacyInfo.xcprivacy */ = {isa = PBXFileReference; includeInIndex = 1; name = PrivacyInfo.xcprivacy; path = PathBlockerOnline/PrivacyInfo.xcprivacy; sourceTree = "<group>"; };
+		DD83246F022D4802424CD8DB /* ExpoModulesProvider.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; name = ExpoModulesProvider.swift; path = "Pods/Target Support Files/Pods-PathBlockerOnline/ExpoModulesProvider.swift"; sourceTree = "<group>"; };
 		ED297162215061F000B7C4FE /* JavaScriptCore.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = JavaScriptCore.framework; path = System/Library/Frameworks/JavaScriptCore.framework; sourceTree = SDKROOT; };
-		EE9549494D8EEA49D413ABFE /* libPods-PathBlockerOnline.a */ = {isa = PBXFileReference; explicitFileType = archive.ar; includeInIndex = 0; path = "libPods-PathBlockerOnline.a"; sourceTree = BUILT_PRODUCTS_DIR; };
 		F11748412D0307B40044C1D9 /* AppDelegate.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; name = AppDelegate.swift; path = PathBlockerOnline/AppDelegate.swift; sourceTree = "<group>"; };
 		F11748442D0722820044C1D9 /* PathBlockerOnline-Bridging-Header.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; name = "PathBlockerOnline-Bridging-Header.h"; path = "PathBlockerOnline/PathBlockerOnline-Bridging-Header.h"; sourceTree = "<group>"; };
-		FBFD41B8792D41FD9C061B75 /* GoogleService-Info.plist */ = {isa = PBXFileReference; explicitFileType = undefined; fileEncoding = 4; includeInIndex = 0; lastKnownFileType = text.plist.xml; name = "GoogleService-Info.plist"; path = "PathBlockerOnline/GoogleService-Info.plist"; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -39,7 +39,7 @@
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
-				AF61CAE943CAD5DA11BDF632 /* libPods-PathBlockerOnline.a in Frameworks */,
+				13E17E04F3ABCDFDC033BF9B /* libPods-PathBlockerOnline.a in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -55,37 +55,27 @@
 				13B07FB51A68108700A75B9A /* Images.xcassets */,
 				13B07FB61A68108700A75B9A /* Info.plist */,
 				AA286B85B6C04FC6940260E9 /* SplashScreen.storyboard */,
-				FBFD41B8792D41FD9C061B75 /* GoogleService-Info.plist */,
-				B498B8BFB2ECD0A9B3255A10 /* PrivacyInfo.xcprivacy */,
+				C0A5F5B1DD704556AFE09FAA /* GoogleService-Info.plist */,
+				D559BF280F1B4CB24BCC5C05 /* PrivacyInfo.xcprivacy */,
 			);
 			name = PathBlockerOnline;
+			sourceTree = "<group>";
+		};
+		27426A43149C7CA01D467AC9 /* ExpoModulesProviders */ = {
+			isa = PBXGroup;
+			children = (
+				FB79D5C4ED15B8A3C5BAFFE4 /* PathBlockerOnline */,
+			);
+			name = ExpoModulesProviders;
 			sourceTree = "<group>";
 		};
 		2D16E6871FA4F8E400B85C8A /* Frameworks */ = {
 			isa = PBXGroup;
 			children = (
 				ED297162215061F000B7C4FE /* JavaScriptCore.framework */,
-				EE9549494D8EEA49D413ABFE /* libPods-PathBlockerOnline.a */,
+				82B4E8A5A34793DA82A27337 /* libPods-PathBlockerOnline.a */,
 			);
 			name = Frameworks;
-			sourceTree = "<group>";
-		};
-		55C0ED5F7596E0A562CC5598 /* ExpoModulesProviders */ = {
-			isa = PBXGroup;
-			children = (
-				952E5FA0B4412063AFED7C17 /* PathBlockerOnline */,
-			);
-			name = ExpoModulesProviders;
-			sourceTree = "<group>";
-		};
-		63058BEBE28A7FC03B9A8B08 /* Pods */ = {
-			isa = PBXGroup;
-			children = (
-				182978D4034FB356600FA0F4 /* Pods-PathBlockerOnline.debug.xcconfig */,
-				94BDE32DB96F6B479866963F /* Pods-PathBlockerOnline.release.xcconfig */,
-			);
-			name = Pods;
-			path = Pods;
 			sourceTree = "<group>";
 		};
 		832341AE1AAA6A7D00B99B32 /* Libraries */ = {
@@ -102,8 +92,8 @@
 				832341AE1AAA6A7D00B99B32 /* Libraries */,
 				83CBBA001A601CBA00E9B192 /* Products */,
 				2D16E6871FA4F8E400B85C8A /* Frameworks */,
-				63058BEBE28A7FC03B9A8B08 /* Pods */,
-				55C0ED5F7596E0A562CC5598 /* ExpoModulesProviders */,
+				E0C1708D7C8A79BBCBD1569F /* Pods */,
+				27426A43149C7CA01D467AC9 /* ExpoModulesProviders */,
 			);
 			indentWidth = 2;
 			sourceTree = "<group>";
@@ -118,14 +108,6 @@
 			name = Products;
 			sourceTree = "<group>";
 		};
-		952E5FA0B4412063AFED7C17 /* PathBlockerOnline */ = {
-			isa = PBXGroup;
-			children = (
-				ABCF3985E1918D2A1F26F235 /* ExpoModulesProvider.swift */,
-			);
-			name = PathBlockerOnline;
-			sourceTree = "<group>";
-		};
 		BB2F792B24A3F905000567C9 /* Supporting */ = {
 			isa = PBXGroup;
 			children = (
@@ -133,6 +115,24 @@
 			);
 			name = Supporting;
 			path = PathBlockerOnline/Supporting;
+			sourceTree = "<group>";
+		};
+		E0C1708D7C8A79BBCBD1569F /* Pods */ = {
+			isa = PBXGroup;
+			children = (
+				9455604FB29E83B07331C4F6 /* Pods-PathBlockerOnline.debug.xcconfig */,
+				B2BB2545C475703858585C2A /* Pods-PathBlockerOnline.release.xcconfig */,
+			);
+			name = Pods;
+			path = Pods;
+			sourceTree = "<group>";
+		};
+		FB79D5C4ED15B8A3C5BAFFE4 /* PathBlockerOnline */ = {
+			isa = PBXGroup;
+			children = (
+				DD83246F022D4802424CD8DB /* ExpoModulesProvider.swift */,
+			);
+			name = PathBlockerOnline;
 			sourceTree = "<group>";
 		};
 /* End PBXGroup section */
@@ -143,14 +143,14 @@
 			buildConfigurationList = 13B07F931A680F5B00A75B9A /* Build configuration list for PBXNativeTarget "PathBlockerOnline" */;
 			buildPhases = (
 				08A4A3CD28434E44B6B9DE2E /* [CP] Check Pods Manifest.lock */,
-				1C4824632CAC89CBA54A3C9E /* [Expo] Configure project */,
+				6AA4A683098E0A0D7AC61D9A /* [Expo] Configure project */,
 				13B07F871A680F5B00A75B9A /* Sources */,
 				13B07F8C1A680F5B00A75B9A /* Frameworks */,
 				13B07F8E1A680F5B00A75B9A /* Resources */,
 				00DD1BFF1BD5951E006B06BC /* Bundle React Native code and images */,
 				800E24972A6A228C8D4807E9 /* [CP] Copy Pods Resources */,
-				31D660462158F351F304FEF2 /* [CP] Embed Pods Frameworks */,
-				8588636186ABCDE51E6C5546 /* [CP-User] [RNGoogleMobileAds] Configuration */,
+				487439BD72FD4CA401161EC5 /* [CP] Embed Pods Frameworks */,
+				EC8C45CD67106746D479A433 /* [CP-User] [RNGoogleMobileAds] Configuration */,
 			);
 			buildRules = (
 			);
@@ -200,8 +200,8 @@
 				BB2F792D24A3F905000567C9 /* Expo.plist in Resources */,
 				13B07FBF1A68108700A75B9A /* Images.xcassets in Resources */,
 				3E461D99554A48A4959DE609 /* SplashScreen.storyboard in Resources */,
-				01D29AC906924FF2964AD378 /* GoogleService-Info.plist in Resources */,
-				DB348FEF1CE5401C68036602 /* PrivacyInfo.xcprivacy in Resources */,
+				6774EA5A6B384321BFD92ED9 /* GoogleService-Info.plist in Resources */,
+				CE6F4BA5226015679C3BC9D5 /* PrivacyInfo.xcprivacy in Resources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -247,7 +247,29 @@
 			shellScript = "diff \"${PODS_PODFILE_DIR_PATH}/Podfile.lock\" \"${PODS_ROOT}/Manifest.lock\" > /dev/null\nif [ $? != 0 ] ; then\n    # print error to STDERR\n    echo \"error: The sandbox is not in sync with the Podfile.lock. Run 'pod install' or update your CocoaPods installation.\" >&2\n    exit 1\nfi\n# This output is used by Xcode 'outputs' to avoid re-running this script phase.\necho \"SUCCESS\" > \"${SCRIPT_OUTPUT_FILE_0}\"\n";
 			showEnvVarsInLog = 0;
 		};
-		1C4824632CAC89CBA54A3C9E /* [Expo] Configure project */ = {
+		487439BD72FD4CA401161EC5 /* [CP] Embed Pods Frameworks */ = {
+			isa = PBXShellScriptBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			inputPaths = (
+				"${PODS_ROOT}/Target Support Files/Pods-PathBlockerOnline/Pods-PathBlockerOnline-frameworks.sh",
+				"${PODS_XCFRAMEWORKS_BUILD_DIR}/React-Core-prebuilt/React.framework/React",
+				"${PODS_XCFRAMEWORKS_BUILD_DIR}/ReactNativeDependencies/ReactNativeDependencies.framework/ReactNativeDependencies",
+				"${PODS_XCFRAMEWORKS_BUILD_DIR}/hermes-engine/Pre-built/hermes.framework/hermes",
+			);
+			name = "[CP] Embed Pods Frameworks";
+			outputPaths = (
+				"${TARGET_BUILD_DIR}/${FRAMEWORKS_FOLDER_PATH}/React.framework",
+				"${TARGET_BUILD_DIR}/${FRAMEWORKS_FOLDER_PATH}/ReactNativeDependencies.framework",
+				"${TARGET_BUILD_DIR}/${FRAMEWORKS_FOLDER_PATH}/hermes.framework",
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+			shellPath = /bin/sh;
+			shellScript = "\"${PODS_ROOT}/Target Support Files/Pods-PathBlockerOnline/Pods-PathBlockerOnline-frameworks.sh\"\n";
+			showEnvVarsInLog = 0;
+		};
+		6AA4A683098E0A0D7AC61D9A /* [Expo] Configure project */ = {
 			isa = PBXShellScriptBuildPhase;
 			alwaysOutOfDate = 1;
 			buildActionMask = 2147483647;
@@ -270,28 +292,6 @@
 			runOnlyForDeploymentPostprocessing = 0;
 			shellPath = /bin/sh;
 			shellScript = "# This script configures Expo modules and generates the modules provider file.\nbash -l -c \"./Pods/Target\\ Support\\ Files/Pods-PathBlockerOnline/expo-configure-project.sh\"\n";
-		};
-		31D660462158F351F304FEF2 /* [CP] Embed Pods Frameworks */ = {
-			isa = PBXShellScriptBuildPhase;
-			buildActionMask = 2147483647;
-			files = (
-			);
-			inputPaths = (
-				"${PODS_ROOT}/Target Support Files/Pods-PathBlockerOnline/Pods-PathBlockerOnline-frameworks.sh",
-				"${PODS_XCFRAMEWORKS_BUILD_DIR}/React-Core-prebuilt/React.framework/React",
-				"${PODS_XCFRAMEWORKS_BUILD_DIR}/ReactNativeDependencies/ReactNativeDependencies.framework/ReactNativeDependencies",
-				"${PODS_XCFRAMEWORKS_BUILD_DIR}/hermes-engine/Pre-built/hermes.framework/hermes",
-			);
-			name = "[CP] Embed Pods Frameworks";
-			outputPaths = (
-				"${TARGET_BUILD_DIR}/${FRAMEWORKS_FOLDER_PATH}/React.framework",
-				"${TARGET_BUILD_DIR}/${FRAMEWORKS_FOLDER_PATH}/ReactNativeDependencies.framework",
-				"${TARGET_BUILD_DIR}/${FRAMEWORKS_FOLDER_PATH}/hermes.framework",
-			);
-			runOnlyForDeploymentPostprocessing = 0;
-			shellPath = /bin/sh;
-			shellScript = "\"${PODS_ROOT}/Target Support Files/Pods-PathBlockerOnline/Pods-PathBlockerOnline-frameworks.sh\"\n";
-			showEnvVarsInLog = 0;
 		};
 		800E24972A6A228C8D4807E9 /* [CP] Copy Pods Resources */ = {
 			isa = PBXShellScriptBuildPhase;
@@ -331,7 +331,7 @@
 			shellScript = "\"${PODS_ROOT}/Target Support Files/Pods-PathBlockerOnline/Pods-PathBlockerOnline-resources.sh\"\n";
 			showEnvVarsInLog = 0;
 		};
-		8588636186ABCDE51E6C5546 /* [CP-User] [RNGoogleMobileAds] Configuration */ = {
+		EC8C45CD67106746D479A433 /* [CP-User] [RNGoogleMobileAds] Configuration */ = {
 			isa = PBXShellScriptBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
@@ -352,7 +352,7 @@
 			buildActionMask = 2147483647;
 			files = (
 				F11748422D0307B40044C1D9 /* AppDelegate.swift in Sources */,
-				34AF6CD61E8EC664099D9E38 /* ExpoModulesProvider.swift in Sources */,
+				F7C5C2DEB5CB0F01022B0A8B /* ExpoModulesProvider.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -361,7 +361,7 @@
 /* Begin XCBuildConfiguration section */
 		13B07F941A680F5B00A75B9A /* Debug */ = {
 			isa = XCBuildConfiguration;
-			baseConfigurationReference = 182978D4034FB356600FA0F4 /* Pods-PathBlockerOnline.debug.xcconfig */;
+			baseConfigurationReference = 9455604FB29E83B07331C4F6 /* Pods-PathBlockerOnline.debug.xcconfig */;
 			buildSettings = {
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				CLANG_ENABLE_MODULES = YES;
@@ -397,7 +397,7 @@
 		};
 		13B07F951A680F5B00A75B9A /* Release */ = {
 			isa = XCBuildConfiguration;
-			baseConfigurationReference = 94BDE32DB96F6B479866963F /* Pods-PathBlockerOnline.release.xcconfig */;
+			baseConfigurationReference = B2BB2545C475703858585C2A /* Pods-PathBlockerOnline.release.xcconfig */;
 			buildSettings = {
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				CLANG_ENABLE_MODULES = YES;
