@@ -1,4 +1,5 @@
 import { getApp, getApps, initializeApp, type FirebaseApp } from 'firebase/app';
+import { initializeAppCheck, ReCaptchaEnterpriseProvider } from "firebase/app-check";
 import {
   getAuth,
   initializeAuth,
@@ -48,9 +49,7 @@ function ensureFirebaseApp(): FirebaseApp {
 }
 
 function ensureAuth(app: FirebaseApp): Auth {
-  if (firebaseAuth) {
-    return firebaseAuth;
-  }
+  if (firebaseAuth) return firebaseAuth;
 
   if (Platform.OS === 'web') {
     firebaseAuth = getAuth(app);
@@ -62,7 +61,6 @@ function ensureAuth(app: FirebaseApp): Auth {
       persistence: getReactNativePersistence(AsyncStorage),
     });
   } catch (error) {
-    // initializeAuth can only be called once per app instance. If it throws, fall back to the default auth instance.
     firebaseAuth = getAuth(app);
   }
 
@@ -70,15 +68,30 @@ function ensureAuth(app: FirebaseApp): Auth {
 }
 
 function ensureFirestore(app: FirebaseApp): Firestore {
-  if (!firestore) {
-    firestore = getFirestore(app);
-  }
-
+  if (!firestore) firestore = getFirestore(app);
   return firestore;
 }
 
 const app = ensureFirebaseApp();
 const auth = ensureAuth(app);
 const db = ensureFirestore(app);
+
+// ✅ Initialize Firebase App Check (adds protection using reCAPTCHA Enterprise)
+if (!__DEV__ && Platform.OS !== 'web') {
+  try {
+    const siteKey =
+      Platform.OS === 'ios'
+        ? '6LcJpuorAAAAAEg6B8cOmuXEHhwNigdX5957ReUd' // iOS reCAPTCHA key
+        : 'YOUR_ANDROID_SITE_KEY';                  // Android reCAPTCHA key
+
+    initializeAppCheck(app, {
+      provider: new ReCaptchaEnterpriseProvider(siteKey),
+      isTokenAutoRefreshEnabled: true,
+    });
+    console.log('✅ App Check initialized');
+  } catch (err) {
+    console.warn('⚠️ App Check init failed:', err);
+  }
+}
 
 export { app, auth, db };
