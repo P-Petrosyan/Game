@@ -4,7 +4,7 @@ export default {
     expo: {
         name: "Path Blocker Online",
         slug: "path-blocker",
-        version: "1.0.1", // App Store / Play Store visible version
+        version: "1.0.2", // App Store / Play Store visible version
         orientation: "portrait",
         icon: "./assets/images/icon1.png",
         scheme: "pathblocker",

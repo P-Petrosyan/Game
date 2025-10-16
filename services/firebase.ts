@@ -1,5 +1,9 @@
 import { getApp, getApps, initializeApp, type FirebaseApp } from 'firebase/app';
-import { initializeAppCheck, ReCaptchaEnterpriseProvider } from "firebase/app-check";
+import {
+  initializeAppCheck,
+  DeviceCheckProvider,
+  PlayIntegrityProvider,
+} from 'firebase/app-check';
 import {
   getAuth,
   initializeAuth,
@@ -76,22 +80,29 @@ const app = ensureFirebaseApp();
 const auth = ensureAuth(app);
 const db = ensureFirestore(app);
 
-// ✅ Initialize Firebase App Check (adds protection using reCAPTCHA Enterprise)
+// ✅ Initialize Firebase App Check correctly for native builds
 if (!__DEV__ && Platform.OS !== 'web') {
   try {
-    const siteKey =
-      Platform.OS === 'ios'
-        ? '6LcJpuorAAAAAEg6B8cOmuXEHhwNigdX5957ReUd' // iOS reCAPTCHA key
-        : 'YOUR_ANDROID_SITE_KEY';                  // Android reCAPTCHA key
-
-    initializeAppCheck(app, {
-      provider: new ReCaptchaEnterpriseProvider(siteKey),
-      isTokenAutoRefreshEnabled: true,
-    });
-    console.log('✅ App Check initialized');
+    if (Platform.OS === 'ios') {
+      // 🛡 Use DeviceCheck (native, no reCAPTCHA)
+      initializeAppCheck(app, {
+        provider: new DeviceCheckProvider(),
+        isTokenAutoRefreshEnabled: true,
+      });
+      console.log('✅ App Check initialized with DeviceCheck');
+    } else if (Platform.OS === 'android') {
+      // 🛡 Use Play Integrity (native)
+      initializeAppCheck(app, {
+        provider: new PlayIntegrityProvider(),
+        isTokenAutoRefreshEnabled: true,
+      });
+      console.log('✅ App Check initialized with Play Integrity');
+    }
   } catch (err) {
     console.warn('⚠️ App Check init failed:', err);
   }
+} else {
+  console.log('🧩 App Check skipped (development or web)');
 }
 
 export { app, auth, db };
