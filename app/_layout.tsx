@@ -48,8 +48,7 @@ export default function RootLayout() {
             <Stack.Screen name="auth/login" options={{ title: 'Sign in' }} />
             <Stack.Screen name="auth/register" options={{ title: 'Create account' }} />
             <Stack.Screen name="profile" options={{ title: 'Profile', headerLeft: () => <LobbyButton /> }} />
-            <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
-            <Stack.Screen name="modal" options={{ presentation: 'modal', title: 'Modal' }} />
+            <Stack.Screen name="rules" options={{ title: 'Rules', headerLeft: () => <LobbyButton /> }} />
           </Stack>
           <StatusBar style="auto" />
         </ThemeProvider>

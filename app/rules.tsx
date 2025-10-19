@@ -63,7 +63,7 @@ export default function RulesScreen() {
 
       <Collapsible title="Play on this screen">
         <ThemedText style={styles.paragraph}>
-          The Home tab hosts an interactive board. Switch between “Move pawn” and “Place wall” to highlight legal actions, tap a
+          The Home tab hosts an interactive board. Switch between "Move pawn" and "Place wall" to highlight legal actions, tap a
           target, and the app will track turns, remaining fences, and victory automatically.
         </ThemedText>
       </Collapsible>

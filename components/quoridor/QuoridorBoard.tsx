@@ -100,9 +100,18 @@ export function QuoridorBoard({
 
           const isCurrentPlayer = occupant === currentPlayer;
           const isValidMove = mode === 'move' && validMoveKeys.has(key) && !occupant;
+          const isNorthStartRow = row === 0;
+          const isSouthStartRow = row === BOARD_SIZE - 1;
 
           const left = 2 + col * (cellSize + wallThickness);
           const top = 2 +  row * (cellSize + wallThickness);
+
+          let cellBackgroundColor = palette.cell;
+          if (isNorthStartRow) {
+            cellBackgroundColor = palette.pawn.north + '20'; // 20 = ~12% opacity
+          } else if (isSouthStartRow) {
+            cellBackgroundColor = palette.pawn.south + '20'; // 20 = ~12% opacity
+          }
 
           return (
             <Pressable
@@ -118,7 +127,7 @@ export function QuoridorBoard({
                   width: cellSize,
                   height: cellSize,
                   borderRadius: cellSize * 0.18,
-                  backgroundColor: palette.cell,
+                  backgroundColor: cellBackgroundColor,
                   borderColor: isCurrentPlayer ? palette.currentOutline : palette.grid,
                   borderWidth: Math.max(1, cellSize * 0.04),
                 },

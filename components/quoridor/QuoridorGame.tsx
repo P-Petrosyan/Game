@@ -5,7 +5,11 @@ import { ThemedText } from '@/components/themed-text';
 import { ThemedView } from '@/components/themed-view';
 import { Colors } from '@/constants/theme';
 import { soundManager } from '@/utils/sounds';
-import { BannerAd, BannerAdSize, TestIds } from "react-native-google-mobile-ads";
+import { useUserStats } from '@/hooks/use-user-stats';
+import { useAuth } from '@/context/AuthContext';
+import { doc, updateDoc, increment } from 'firebase/firestore';
+import { db } from '@/services/firebase';
+import { BannerAd, BannerAdSize, TestIds, RewardedAd, RewardedAdEventType } from "react-native-google-mobile-ads";
 
 import {
   INITIAL_POSITIONS,
@@ -56,7 +60,16 @@ const adUnitId = __DEV__
     android: 'ca-app-pub-4468002211413891/9076987898', // ✅ Android banner ID
   })!;
 
+const rewardedAdUnitId = __DEV__
+  ? TestIds.REWARDED
+  : Platform.select({
+    ios: 'ca-app-pub-4468002211413891/7395760006',     // ✅ iOS banner ID
+    android: 'ca-app-pub-4468002211413891/2090821804', // ✅ Android banner ID
+  })!;
+
 export function QuoridorGame() {
+  const { stats } = useUserStats();
+  const { user } = useAuth();
   const [positions, setPositions] = useState<Record<PlayerId, Position>>(() => ({
     north: { ...INITIAL_POSITIONS.north },
     south: { ...INITIAL_POSITIONS.south },
@@ -75,14 +88,81 @@ export function QuoridorGame() {
   const [isAiThinking, setIsAiThinking] = useState(false);
   const [difficulty, setDifficulty] = useState<Difficulty>('medium');
   const [ai] = useState(() => new QuoridorAI('medium'));
+  const [showHelp, setShowHelp] = useState(false);
+  const [helpMessage, setHelpMessage] = useState<string>('');
 
-  // Load sounds on component mount
+  // --- Rewarded Ad Setup ---
+  // --- Rewarded Ad (show when page opens) ---
   useEffect(() => {
     soundManager.loadSounds();
+
+    const ad = RewardedAd.createForAdRequest(rewardedAdUnitId, {
+      requestNonPersonalizedAdsOnly: true,
+    });
+
+    const onAdLoaded = () => {
+      console.log("[AdMob] Rewarded ad loaded ✅");
+      ad.show(); // show immediately once loaded
+    };
+
+    const onAdEarned = async (reward) => {
+      if (user) {
+        try {
+          await updateDoc(doc(db, "users", user.uid), {
+            "stats.points": increment(50),
+          });
+          setStatusMessage("🎉 You earned 50 points!");
+          setTimeout(() => setStatusMessage(null), 3000);
+        } catch (err) {
+          console.error("Failed to update points:", err);
+        }
+      }
+    };
+
+    // Subscribe to ad events
+    const unsubscribeLoaded = ad.addAdEventListener(RewardedAdEventType.LOADED, onAdLoaded);
+    const unsubscribeEarned = ad.addAdEventListener(RewardedAdEventType.EARNED_REWARD, onAdEarned);
+
+    // Start loading the ad
+    ad.load();
+
+    // Cleanup
     return () => {
+      unsubscribeLoaded();
+      unsubscribeEarned();
       soundManager.cleanup();
     };
-  }, []);
+  }, [user]);
+
+  // Auto help system - only for users with less than 5 games played
+  useEffect(() => {
+    if (winner || !stats || stats.gamesPlayed >= 5) return;
+    
+    const moveCount = (8 + positions.north.row) - positions.south.row;
+    let timer: number | null = null;
+    
+    if (positions.north.row === 0 && wallsRemaining[currentPlayer] == 10) {
+      setShowHelp(true);
+      if (currentPlayer === 'north') {
+        setHelpMessage('🎯 Your goal: Reach the top row. Click a highlighted square to move your pawn.');
+      }
+      timer = setTimeout(() => setHelpMessage(''), 1500);
+    } else if ( 3 <= moveCount && moveCount <= 7 && currentPlayer === 'north' && wallsRemaining[currentPlayer] == 10) {
+      setShowHelp(true);
+      setHelpMessage('🧱 Try placing a wall to block the AI! Click "Place wall" then tap a highlighted area.');
+      timer = setTimeout(() => setHelpMessage(''), 1500);
+    } else if (moveCount >= 10 && currentPlayer === 'north' && wallsRemaining[currentPlayer] > 6 && wallsRemaining[opponent] > 5) {
+      setShowHelp(true);
+      setHelpMessage('💡 Tip: Walls block movement but can\'t completely trap a player. Plan your strategy!');
+      timer = setTimeout(() => setHelpMessage(''), 1500);
+    } else if (moveCount > 6) {
+      setShowHelp(false);
+    }
+    
+    return () => {
+      if (timer) clearTimeout(timer);
+    };
+  }, [currentPlayer, positions, winner, stats]);
 
   const opponent = getOpponent(currentPlayer);
 
@@ -301,6 +381,8 @@ export function QuoridorGame() {
     setWinner(null);
     setStatusMessage(null);
     setIsAiThinking(false);
+    setShowHelp(true);
+    setHelpMessage('');
   };
 
   const handleDifficultyChange = (newDifficulty: Difficulty) => {
@@ -415,16 +497,26 @@ export function QuoridorGame() {
                 {isAiThinking ? 'AI is thinking...' : heading}
               </ThemedText>
             </View>
-            <Pressable
-              style={[styles.resetButton, { backgroundColor: Colors.accent }]}
-              onPress={startNewGame}>
-              <ThemedText
-                style={[styles.resetButtonText, { color: Colors.buttonText }]}
-              >
-                New game
-              </ThemedText>
-            </Pressable>
+              <Pressable
+                style={[styles.resetButton, { backgroundColor: Colors.accent }]}
+                onPress={startNewGame}>
+                <ThemedText
+                  style={[styles.resetButtonText, { color: Colors.buttonText }]}
+                >
+                  New game
+                </ThemedText>
+              </Pressable>
           </View>
+          {showHelp && helpMessage && (
+            <View style={styles.helpCard}>
+              <ThemedText style={styles.helpText}>{helpMessage}</ThemedText>
+              <Pressable
+                style={[styles.helpButton, { backgroundColor: Colors.surfaceMuted }]}
+                onPress={() => setShowHelp(false)}>
+                <ThemedText style={[styles.helpButtonText, { color: Colors.textMuted }]}>✕</ThemedText>
+              </Pressable>
+            </View>
+          )}
           <View style={styles.difficultyRow}>
             {(['easy', 'medium', 'hard'] as Difficulty[]).map((diff) => (
               <Pressable
@@ -838,5 +930,38 @@ const styles = StyleSheet.create({
   },
   activeDifficultyButtonText: {
     color: Colors.buttonText,
+  },
+  helpCard: {
+    position: 'absolute',
+    top: 90,
+    left: 16,
+    right: 16,
+    backgroundColor: Colors.accent + '99',
+    borderRadius: 8,
+    padding: 12,
+    borderLeftWidth: 3,
+    borderLeftColor: Colors.accent,
+    zIndex: 1000,
+    elevation: 10,
+    shadowColor: Colors.translucentDark,
+    shadowOpacity: 0.2,
+    shadowOffset: { width: 0, height: 4 },
+    shadowRadius: 8,
+  },
+  helpText: {
+    fontSize: 14,
+    color: Colors.text,
+    lineHeight: 18,
+  },
+  helpButton: {
+    width: 28,
+    height: 28,
+    borderRadius: 14,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  helpButtonText: {
+    fontSize: 10,
+    fontWeight: 'bold',
   },
 });

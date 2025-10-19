@@ -453,10 +453,10 @@ export class QuoridorAI {
 
         score = this.addRandomness(score);
 
-        if (this.difficulty === 'hard' && bestMove && bestMove.type === 'move' && score <= bestMove.score + 10) {
-          // Only choose wall if it's significantly better than moving forward
-          continue;
-        }
+        // if (this.difficulty === 'hard' && bestMove && bestMove.type === 'move' && score <= bestMove.score + 2) {
+        //   // Only choose wall if it's significantly better than moving forward
+        //   continue;
+        // }
 
         if (!bestMove || score > bestMove.score) {
           bestMove = { type: 'wall', data: wall, score };

@@ -25,7 +25,7 @@ export default {
             supportsTablet: true,
             bundleIdentifier: "com.anonymous.pathblocker",
             deploymentTarget: "18.0",
-            buildNumber: "2",
+            buildNumber: "3",
             googleServicesFile: "./GoogleService-Info.plist",
             infoPlist: {
                 NSUserTrackingUsageDescription:

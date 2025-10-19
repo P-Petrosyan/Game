@@ -99,9 +99,11 @@ export default function HomeScreen() {
             <ThemedText type="title" style={styles.title}>
               Path Blocker
             </ThemedText>
-            {/*<ThemedText style={styles.subtitle}>*/}
-            {/*  Choose how you want to play and jump into the action.*/}
-            {/*</ThemedText>*/}
+            <Pressable
+              onPress={() => router.push('/rules')}
+              style={styles.rulesButton}>
+              <ThemedText style={styles.rulesButtonText}>How to Play</ThemedText>
+            </Pressable>
           </View>
           <View style={styles.authCard}>
             <View style={styles.authHeader}>
@@ -405,5 +407,19 @@ const styles = StyleSheet.create({
     fontSize: 12,
     opacity: 0.7,
     textTransform: 'uppercase',
+  },
+  rulesButton: {
+    alignSelf: 'center',
+    paddingHorizontal: 16,
+    paddingVertical: 8,
+    backgroundColor: Colors.surfaceMuted,
+    borderRadius: 20,
+    borderWidth: 1,
+    borderColor: Colors.outline,
+  },
+  rulesButtonText: {
+    fontSize: 14,
+    color: Colors.accent,
+    fontWeight: '600',
   },
 });
