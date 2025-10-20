@@ -508,9 +508,9 @@ export class QuoridorAI {
   getThinkingTime(): number {
 
     const baseTime = this.difficulty === 'easy' ? 300 :
-      this.difficulty === 'medium' ? 1000 : 1400;
+      this.difficulty === 'medium' ? 1000 : 1300;
     const variation = this.difficulty === 'easy' ? 300 :
-      this.difficulty === 'medium' ? 400 : 400;
+      this.difficulty === 'medium' ? 400 : 600;
     return baseTime + Math.random() * variation;
   }
 }

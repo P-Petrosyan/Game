@@ -7,9 +7,7 @@ import { Colors } from '@/constants/theme';
 import { soundManager } from '@/utils/sounds';
 import { useUserStats } from '@/hooks/use-user-stats';
 import { useAuth } from '@/context/AuthContext';
-import { doc, updateDoc, increment } from 'firebase/firestore';
-import { db } from '@/services/firebase';
-import { BannerAd, BannerAdSize, TestIds, RewardedAd, RewardedAdEventType } from "react-native-google-mobile-ads";
+import { BannerAd, BannerAdSize, TestIds, InterstitialAd, AdEventType } from "react-native-google-mobile-ads";
 
 import {
   INITIAL_POSITIONS,
@@ -60,11 +58,11 @@ const adUnitId = __DEV__
     android: 'ca-app-pub-4468002211413891/9076987898', // ✅ Android banner ID
   })!;
 
-const rewardedAdUnitId = __DEV__
-  ? TestIds.REWARDED
+const interstitialAdUnitId = __DEV__
+  ? TestIds.INTERSTITIAL_VIDEO
   : Platform.select({
-    ios: 'ca-app-pub-4468002211413891/7395760006',     // ✅ iOS banner ID
-    android: 'ca-app-pub-4468002211413891/2090821804', // ✅ Android banner ID
+    ios: 'ca-app-pub-4468002211413891/9053097238',     // ✅ iOS banner ID
+    android: 'ca-app-pub-4468002211413891/8304150015', // ✅ Android banner ID
   })!;
 
 export function QuoridorGame() {
@@ -91,45 +89,40 @@ export function QuoridorGame() {
   const [showHelp, setShowHelp] = useState(false);
   const [helpMessage, setHelpMessage] = useState<string>('');
 
-  // --- Rewarded Ad Setup ---
-  // --- Rewarded Ad (show when page opens) ---
+  // --- Interstitial Ad (show when page opens) ---
   useEffect(() => {
     soundManager.loadSounds();
 
-    const ad = RewardedAd.createForAdRequest(rewardedAdUnitId, {
+    const ad = InterstitialAd.createForAdRequest(interstitialAdUnitId, {
       requestNonPersonalizedAdsOnly: true,
     });
 
     const onAdLoaded = () => {
-      console.log("[AdMob] Rewarded ad loaded ✅");
-      ad.show(); // show immediately once loaded
+      console.log("[AdMob] Interstitial ad loaded ✅");
+      ad.show(); // show once as soon as it's ready
     };
 
-    const onAdEarned = async (reward) => {
-      if (user) {
-        try {
-          await updateDoc(doc(db, "users", user.uid), {
-            "stats.points": increment(50),
-          });
-          setStatusMessage("🎉 You earned 50 points!");
-          setTimeout(() => setStatusMessage(null), 3000);
-        } catch (err) {
-          console.error("Failed to update points:", err);
-        }
-      }
+    const onAdClosed = () => {
+      console.log("[AdMob] Interstitial ad closed");
+    };
+
+    const onAdFailed = (error) => {
+      console.warn("[AdMob] Interstitial failed to load:", error);
     };
 
     // Subscribe to ad events
-    const unsubscribeLoaded = ad.addAdEventListener(RewardedAdEventType.LOADED, onAdLoaded);
-    const unsubscribeEarned = ad.addAdEventListener(RewardedAdEventType.EARNED_REWARD, onAdEarned);
+    const unsubLoaded = ad.addAdEventListener(AdEventType.LOADED, onAdLoaded);
+    const unsubClosed = ad.addAdEventListener(AdEventType.CLOSED, onAdClosed);
+    const unsubFailed = ad.addAdEventListener(AdEventType.ERROR, onAdFailed);
 
     // Start loading the ad
     ad.load();
 
-    // Cleanup
+    // Cleanup on unmount
     return () => {
-      unsubscribeLoaded();
-      unsubscribeEarned();
+      unsubLoaded();
+      unsubClosed();
+      unsubFailed();
       soundManager.cleanup();
     };
   }, [user]);
@@ -144,18 +137,14 @@ export function QuoridorGame() {
     if (positions.north.row === 0 && wallsRemaining[currentPlayer] == 10) {
       setShowHelp(true);
       if (currentPlayer === 'north') {
-        setHelpMessage('🎯 Your goal: Reach the top row. Click a highlighted square to move your pawn.');
+        setHelpMessage('🎯 Reach the top row. Click a square to move.');
       }
       timer = setTimeout(() => setHelpMessage(''), 1500);
-    } else if ( 3 <= moveCount && moveCount <= 7 && currentPlayer === 'north' && wallsRemaining[currentPlayer] == 10) {
+    } else if ( 3 <= moveCount && moveCount <= 8 && currentPlayer === 'north' && wallsRemaining[currentPlayer] == 10) {
       setShowHelp(true);
-      setHelpMessage('🧱 Try placing a wall to block the AI! Click "Place wall" then tap a highlighted area.');
+      setHelpMessage('🧱 Click "Place wall" then tap a highlighted area.');
       timer = setTimeout(() => setHelpMessage(''), 1500);
-    } else if (moveCount >= 10 && currentPlayer === 'north' && wallsRemaining[currentPlayer] > 6 && wallsRemaining[opponent] > 5) {
-      setShowHelp(true);
-      setHelpMessage('💡 Tip: Walls block movement but can\'t completely trap a player. Plan your strategy!');
-      timer = setTimeout(() => setHelpMessage(''), 1500);
-    } else if (moveCount > 6) {
+    }  else if (moveCount > 9) {
       setShowHelp(false);
     }
     
@@ -393,12 +382,10 @@ export function QuoridorGame() {
 
   // Auto-restart when user wins
   useEffect(() => {
-    if (winner === 'north') {
-      const timer = setTimeout(() => {
-        startNewGame();
-      }, 2000);
-      return () => clearTimeout(timer);
-    }
+    const timer = setTimeout(() => {
+      startNewGame();
+    }, 2500);
+    return () => clearTimeout(timer);
   }, [winner]);
 
   const handleWallSelect = (orientation: Orientation) => {
@@ -511,9 +498,8 @@ export function QuoridorGame() {
             <View style={styles.helpCard}>
               <ThemedText style={styles.helpText}>{helpMessage}</ThemedText>
               <Pressable
-                style={[styles.helpButton, { backgroundColor: Colors.surfaceMuted }]}
+                style={{ backgroundColor: Colors.surfaceMuted }}
                 onPress={() => setShowHelp(false)}>
-                <ThemedText style={[styles.helpButtonText, { color: Colors.textMuted }]}>✕</ThemedText>
               </Pressable>
             </View>
           )}
@@ -933,7 +919,7 @@ const styles = StyleSheet.create({
   },
   helpCard: {
     position: 'absolute',
-    top: 90,
+    top: 80,
     left: 16,
     right: 16,
     backgroundColor: Colors.accent + '99',
@@ -952,16 +938,5 @@ const styles = StyleSheet.create({
     fontSize: 14,
     color: Colors.text,
     lineHeight: 18,
-  },
-  helpButton: {
-    width: 28,
-    height: 28,
-    borderRadius: 14,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  helpButtonText: {
-    fontSize: 10,
-    fontWeight: 'bold',
   },
 });

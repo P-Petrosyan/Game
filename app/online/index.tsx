@@ -21,12 +21,12 @@ type GameListItemProps = {
   disabled?: boolean;
 };
 
-const adUnitId = __DEV__
-  ? TestIds.BANNER
-  : Platform.select({
-    ios: 'ca-app-pub-4468002211413891/5755554513',     // ✅ iOS banner ID
-    android: 'ca-app-pub-4468002211413891/9076987898', // ✅ Android banner ID
-  })!;
+// const adUnitId = __DEV__
+//   ? TestIds.BANNER
+//   : Platform.select({
+//     ios: 'ca-app-pub-4468002211413891/5755554513',     // ✅ iOS banner ID
+//     android: 'ca-app-pub-4468002211413891/9076987898', // ✅ Android banner ID
+//   })!;
 
 function GameListItem({ name, players, maxPlayers, status, isPrivate, onPress, disabled }: GameListItemProps) {
   return (
@@ -133,15 +133,15 @@ export default function OnlineGamesScreen() {
       style={styles.backgroundImage}
       resizeMode="cover"
     >
-      <View style={styles.bannerContainer}>
-        <BannerAd
-          unitId={adUnitId}
-          size={BannerAdSize.ANCHORED_ADAPTIVE_BANNER}
-          requestOptions={{
-            requestNonPersonalizedAdsOnly: true,
-          }}
-        />
-      </View>
+      {/*<View style={styles.bannerContainer}>*/}
+        {/*<BannerAd*/}
+        {/*  unitId={adUnitId}*/}
+        {/*  size={BannerAdSize.ANCHORED_ADAPTIVE_BANNER}*/}
+        {/*  requestOptions={{*/}
+        {/*    requestNonPersonalizedAdsOnly: true,*/}
+        {/*  }}*/}
+        {/*/>*/}
+      {/*</View>*/}
       <ThemedView style={[styles.container, styles.overlay]}>
       <View style={styles.header}>
         <ThemedText type="title" style={styles.title}>

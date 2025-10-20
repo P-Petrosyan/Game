@@ -258,7 +258,7 @@ export function MultiplayerQuoridorGame({ gameId }: MultiplayerQuoridorGameProps
     // Reset timer when turn changes
     const currentTime = Date.now();
     if (currentTime - lastTurnChangeRef.current > 500) { // Debounce turn changes
-      setTurnTimer(30);
+      setTurnTimer(50);
       lastTurnChangeRef.current = currentTime;
     }
 
